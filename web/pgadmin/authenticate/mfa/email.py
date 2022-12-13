@@ -32,9 +32,10 @@ def __generate_otp() -> str:
     import codecs
     import random
 
-    code = codecs.encode("{}{}{}".format(
-        time.time(), current_user.username, random.randint(1000, 9999)
-    ).encode(), "hex")
+    code = codecs.encode(
+        f"{time.time()}{current_user.username}{random.randint(1000, 9999)}".encode(),
+        "hex",
+    )
 
     res = 0
     idx = 0
@@ -170,12 +171,19 @@ def javascript() -> Response:
         Flask.Response: Response object conataining the javscript code for the
                         email auth method.
     """
-    if not current_user.is_authenticated:
-        return Response(_("Not accessible"), 401, mimetype="text/plain")
-
-    return Response(render_template(
-        "mfa/email.js", _=_, url_for=url_for,
-    ), 200, mimetype="text/javascript")
+    return (
+        Response(
+            render_template(
+                "mfa/email.js",
+                _=_,
+                url_for=url_for,
+            ),
+            200,
+            mimetype="text/javascript",
+        )
+        if current_user.is_authenticated
+        else Response(_("Not accessible"), 401, mimetype="text/plain")
+    )
 
 
 EMAIL_AUTH_METHOD = 'email'
@@ -196,7 +204,7 @@ class EmailAuthentication(BaseMFAuth):
         return email_authentication_label()
 
     def validate(self, **kwargs):
-        code = kwargs.get('code', None)
+        code = kwargs.get('code')
         email_otp = session.get("mfa_email_code", None)
         if code is not None and email_otp is not None and code == email_otp:
             session.pop("mfa_email_code")

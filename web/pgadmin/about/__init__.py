@@ -95,19 +95,13 @@ def index():
                             'LDAP_BIND_PASSWORD',
                             'SECURITY_PASSWORD_HASH']:
             if isinstance(getattr(config, setting), str):
-                settings = \
-                    settings + '{} = "{}"\n'.format(
-                        setting, getattr(config, setting))
+                settings = f'{settings}{setting} = "{getattr(config, setting)}"\n'
             else:
-                settings = \
-                    settings + '{} = {}\n'.format(
-                        setting, getattr(config, setting))
+                settings = f'{settings}{setting} = {getattr(config, setting)}\n'
 
     info['settings'] = settings
 
-    return render_template(
-        MODULE_NAME + '/index.html', info=info, _=gettext
-    )
+    return render_template(f'{MODULE_NAME}/index.html', info=info, _=gettext)
 
 
 def is_admin(load_user):
@@ -128,12 +122,11 @@ def detect_browser(request):
 
     else:
         browser = httpagentparser.detect(agent)
-        if not browser:
-            browser = agent.split('/')[0]
-        else:
-            browser = browser['browser']['name'] + ' ' + browser['browser'][
-                'version']
-
+        browser = (
+            browser['browser']['name'] + ' ' + browser['browser']['version']
+            if browser
+            else agent.split('/')[0]
+        )
     return browser, os_details, nwjs_version
 
 

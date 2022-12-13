@@ -38,7 +38,7 @@ class FTSConfDeleteTestCase(BaseTestGenerator):
         self.server_id = schema_data['server_id']
         self.db_id = schema_data['db_id']
         self.db_name = parent_node_dict["database"][-1]["db_name"]
-        self.fts_conf_name = "fts_conf_%s" % str(uuid.uuid4())[1:8]
+        self.fts_conf_name = f"fts_conf_{str(uuid.uuid4())[1:8]}"
 
         self.fts_conf_id = fts_configuration_utils.create_fts_configuration(
             self.server, self.db_name, self.schema_name, self.fts_conf_name)
@@ -52,7 +52,7 @@ class FTSConfDeleteTestCase(BaseTestGenerator):
                                                  self.server_id,
                                                  self.db_id)
 
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
 
         schema_response = schema_utils.verify_schemas(self.server,

@@ -258,17 +258,14 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
         )
         status, res = self.conn.execute_dict(sql)
 
-        if not status:
-            return internal_server_error(errormsg=res)
-
-        return ajax_response(
-            response=res['rows'],
-            status=200
+        return (
+            ajax_response(response=res['rows'], status=200)
+            if status
+            else internal_server_error(errormsg=res)
         )
 
     @check_precondition
     def nodes(self, gid, sid, did, scid):
-        res = []
         sql = render_template(
             "/".join([self.template_path, self._NODES_SQL]),
             scid=scid
@@ -277,15 +274,12 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
         if not status:
             return internal_server_error(errormsg=rset)
 
-        for row in rset['rows']:
-            res.append(
-                self.blueprint.generate_browser_node(
-                    row['oid'],
-                    scid,
-                    row['name'],
-                    icon="icon-fts_parser"
-                ))
-
+        res = [
+            self.blueprint.generate_browser_node(
+                row['oid'], scid, row['name'], icon="icon-fts_parser"
+            )
+            for row in rset['rows']
+        ]
         return make_json_response(
             data=res,
             status=200
@@ -327,13 +321,7 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
         :return:
         """
         status, res = self._fetch_properties(scid, pid)
-        if not status:
-            return res
-
-        return ajax_response(
-            response=res,
-            status=200
-        )
+        return ajax_response(response=res, status=200) if status else res
 
     def _fetch_properties(self, scid, pid):
         """
@@ -381,9 +369,7 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
             'name'
         ]
 
-        data = request.form if request.form else json.loads(
-            request.data, encoding='utf-8'
-        )
+        data = request.form or json.loads(request.data, encoding='utf-8')
         for arg in required_args:
             if arg not in data:
                 return make_json_response(
@@ -425,16 +411,17 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
             scid=data['schema'] if 'schema' in data else scid
         )
         status, pid = self.conn.execute_scalar(sql)
-        if not status:
-            return internal_server_error(errormsg=pid)
-
-        return jsonify(
-            node=self.blueprint.generate_browser_node(
-                pid,
-                data['schema'] if 'schema' in data else scid,
-                data['name'],
-                icon="icon-fts_parser"
+        return (
+            jsonify(
+                node=self.blueprint.generate_browser_node(
+                    pid,
+                    data['schema'] if 'schema' in data else scid,
+                    data['name'],
+                    icon="icon-fts_parser",
+                )
             )
+            if status
+            else internal_server_error(errormsg=pid)
         )
 
     @check_precondition
@@ -447,9 +434,7 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
         :param scid: schema id
         :param pid: fts parser id
         """
-        data = request.form if request.form else json.loads(
-            request.data, encoding='utf-8'
-        )
+        data = request.form or json.loads(request.data, encoding='utf-8')
         # Fetch sql query to update fts parser
         sql, name = self.get_sql(gid, sid, did, scid, data, pid)
         # Most probably this is due to error
@@ -482,7 +467,7 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
                 pid,
                 data['schema'] if 'schema' in data else scid,
                 name,
-                icon="icon-%s" % self.node_type
+                icon=f"icon-{self.node_type}",
             )
         )
 
@@ -498,9 +483,7 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
         :param only_sql: Return only sql if True
         """
         if pid is None:
-            data = request.form if request.form else json.loads(
-                request.data, encoding='utf-8'
-            )
+            data = request.form or json.loads(request.data, encoding='utf-8')
         else:
             data = {'ids': [pid]}
 
@@ -569,10 +552,7 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
             try:
                 # comments should be taken as is because if user enters a
                 # json comment it is parsed by loads which should not happen
-                if k in ('description',):
-                    data[k] = v
-                else:
-                    data[k] = json.loads(v, encoding='utf-8')
+                data[k] = v if k in ('description',) else json.loads(v, encoding='utf-8')
             except ValueError:
                 data[k] = v
 
@@ -610,22 +590,22 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
         new_data = data.copy()
         new_data['schema'] = schema
 
-        if (
-            'prsstart' in new_data and
-            'prstoken' in new_data and
-            'prsend' in new_data and
-            'prslextype' in new_data and
-            'name' in new_data and
-            'schema' in new_data
-        ):
-            sql = render_template(
+        return (
+            render_template(
                 "/".join([self.template_path, self._CREATE_SQL]),
                 data=new_data,
-                conn=self.conn
+                conn=self.conn,
             )
-        else:
-            sql = "-- definition incomplete"
-        return sql
+            if (
+                'prsstart' in new_data
+                and 'prstoken' in new_data
+                and 'prsend' in new_data
+                and 'prslextype' in new_data
+                and 'name' in new_data
+                and 'schema' in new_data
+            )
+            else "-- definition incomplete"
+        )
 
     def get_sql(self, gid, sid, did, scid, data, pid=None):
         """
@@ -725,9 +705,10 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
         # Empty set is added before actual list as initially it will be visible
         # at start select control while creating a new fts parser
         res = [{'label': '', 'value': ''}]
-        for row in rset['rows']:
-            res.append({'label': row['proname'],
-                        'value': row['proname']})
+        res.extend(
+            {'label': row['proname'], 'value': row['proname']}
+            for row in rset['rows']
+        )
         return make_json_response(
             data=res,
             status=200
@@ -753,9 +734,10 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
         # Empty set is added before actual list as initially it will be visible
         # at token select control while creating a new fts parser
         res = [{'label': '', 'value': ''}]
-        for row in rset['rows']:
-            res.append({'label': row['proname'],
-                        'value': row['proname']})
+        res.extend(
+            {'label': row['proname'], 'value': row['proname']}
+            for row in rset['rows']
+        )
         return make_json_response(
             data=res,
             status=200
@@ -781,9 +763,10 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
         # Empty set is added before actual list as initially it will be visible
         # at end select control while creating a new fts parser
         res = [{'label': '', 'value': ''}]
-        for row in rset['rows']:
-            res.append({'label': row['proname'],
-                        'value': row['proname']})
+        res.extend(
+            {'label': row['proname'], 'value': row['proname']}
+            for row in rset['rows']
+        )
         return make_json_response(
             data=res,
             status=200
@@ -809,9 +792,10 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
         # Empty set is added before actual list as initially it will be visible
         # at lextype select control while creating a new fts parser
         res = [{'label': '', 'value': ''}]
-        for row in rset['rows']:
-            res.append({'label': row['proname'],
-                        'value': row['proname']})
+        res.extend(
+            {'label': row['proname'], 'value': row['proname']}
+            for row in rset['rows']
+        )
         return make_json_response(
             data=res,
             status=200
@@ -837,9 +821,10 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
         # Empty set is added before actual list as initially it will be visible
         # at headline select control while creating a new fts parser
         res = [{'label': '', 'value': ''}]
-        for row in rset['rows']:
-            res.append({'label': row['proname'],
-                        'value': row['proname']})
+        res.extend(
+            {'label': row['proname'], 'value': row['proname']}
+            for row in rset['rows']
+        )
         return make_json_response(
             data=res,
             status=200
@@ -857,7 +842,7 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
         :param json_resp: True then return json response
         """
         json_resp = kwargs.get('json_resp', True)
-        target_schema = kwargs.get('target_schema', None)
+        target_schema = kwargs.get('target_schema')
 
         try:
             sql = render_template(
@@ -899,11 +884,7 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
 
                 res = res.replace(schema, target_schema)
 
-            if not json_resp:
-                return res
-
-            return ajax_response(response=res)
-
+            return ajax_response(response=res) if json_resp else res
         except Exception as e:
             current_app.logger.exception(e)
             return internal_server_error(errormsg=str(e))
@@ -957,7 +938,7 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
         :param scid: Schema Id
         :return:
         """
-        res = dict()
+        res = {}
         SQL = render_template("/".join([self.template_path,
                                         self._NODES_SQL]), scid=scid,
                               schema_diff=True)
@@ -983,23 +964,22 @@ class FtsParserView(PGChildNodeView, SchemaDiffObjectCompare):
         did = kwargs.get('did')
         scid = kwargs.get('scid')
         oid = kwargs.get('oid')
-        data = kwargs.get('data', None)
+        data = kwargs.get('data')
         drop_sql = kwargs.get('drop_sql', False)
-        target_schema = kwargs.get('target_schema', None)
+        target_schema = kwargs.get('target_schema')
 
         if data:
             sql, name = self.get_sql(gid=gid, sid=sid, did=did, scid=scid,
                                      data=data, pid=oid)
+        elif drop_sql:
+            sql = self.delete(gid=gid, sid=sid, did=did,
+                              scid=scid, pid=oid, only_sql=True)
+        elif target_schema:
+            sql = self.sql(gid=gid, sid=sid, did=did, scid=scid, pid=oid,
+                           target_schema=target_schema, json_resp=False)
         else:
-            if drop_sql:
-                sql = self.delete(gid=gid, sid=sid, did=did,
-                                  scid=scid, pid=oid, only_sql=True)
-            elif target_schema:
-                sql = self.sql(gid=gid, sid=sid, did=did, scid=scid, pid=oid,
-                               target_schema=target_schema, json_resp=False)
-            else:
-                sql = self.sql(gid=gid, sid=sid, did=did, scid=scid, pid=oid,
-                               json_resp=False)
+            sql = self.sql(gid=gid, sid=sid, did=did, scid=scid, pid=oid,
+                           json_resp=False)
         return sql
 
 

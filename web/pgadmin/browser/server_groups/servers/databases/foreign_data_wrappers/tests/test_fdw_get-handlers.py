@@ -54,7 +54,7 @@ class FDWHandlersTestCase(BaseTestGenerator):
                                                  utils.SERVER_GROUP,
                                                  self.server_id,
                                                  self.db_id)
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
         fdw_response = fdw_utils.verify_fdw(self.server, self.db_name,
                                             self.fdw_name)
@@ -64,12 +64,11 @@ class FDWHandlersTestCase(BaseTestGenerator):
         if self.is_positive_test:
             response = self.get_handlers_fdw()
 
-        else:
-            if hasattr(self, "internal_server_error"):
-                return_value_object = eval(self.mock_data["return_value"])
-                with patch(self.mock_data["function_name"],
-                           side_effect=[return_value_object]):
-                    response = self.get_handlers_fdw()
+        elif hasattr(self, "internal_server_error"):
+            return_value_object = eval(self.mock_data["return_value"])
+            with patch(self.mock_data["function_name"],
+                       side_effect=[return_value_object]):
+                response = self.get_handlers_fdw()
 
         self.assertEqual(response.status_code,
                          self.expected_data["status_code"])

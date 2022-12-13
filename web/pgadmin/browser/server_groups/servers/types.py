@@ -47,7 +47,7 @@ class ServerType(object):
 
     @property
     def icon(self):
-        return "%s.svg" % self.stype
+        return f"{self.stype}.svg"
 
     @property
     def server_type(self):
@@ -182,10 +182,9 @@ class ServerType(object):
         # Check if "$DIR" present in binary path
         bin_path = replace_binary_path(bin_path)
 
-        return os.path.abspath(os.path.join(
-            bin_path,
-            (res if os.name != 'nt' else (res + '.exe'))
-        ))
+        return os.path.abspath(
+            os.path.join(bin_path, res if os.name != 'nt' else f'{res}.exe')
+        )
 
     def get_utility_path(self, sverison):
         """
@@ -214,10 +213,7 @@ class ServerType(object):
         This function is used to iterate through the binary paths
         and check whether isDefault is set to true.
         """
-        for path in binary_paths:
-            if path['isDefault']:
-                return True
-        return False
+        return any(path['isDefault'] for path in binary_paths)
 
     @staticmethod
     def is_binary_path_of_type_json(binary_path):
@@ -240,14 +236,17 @@ class ServerType(object):
         is_default_path_set = ServerType.is_default_binary_path_set(bin_paths)
         for path in config.DEFAULT_BINARY_PATHS:
             path_value = config.DEFAULT_BINARY_PATHS[path]
-            if path_value is not None and path_value != "" and \
-                    path.find(server_type) == 0 and len(path.split('-')) > 1:
-                set_binary_path(path_value, bin_paths, server_type,
-                                path.split('-')[1])
-            elif path_value is not None and path_value != "" and \
-                    path.find(server_type) == 0:
-                set_binary_path(path_value, bin_paths, server_type,
-                                set_as_default=not is_default_path_set)
+            if (
+                path_value is not None
+                and path_value != ""
+                and path.find(server_type) == 0
+            ):
+                if len(path.split('-')) > 1:
+                    set_binary_path(path_value, bin_paths, server_type,
+                                    path.split('-')[1])
+                else:
+                    set_binary_path(path_value, bin_paths, server_type,
+                                    set_as_default=not is_default_path_set)
 
 
 # Default Server Type

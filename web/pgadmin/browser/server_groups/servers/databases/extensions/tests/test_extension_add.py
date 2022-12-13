@@ -36,7 +36,7 @@ class ExtensionsAddTestCase(BaseTestGenerator):
                                                  self.server_id,
                                                  self.db_id)
 
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
         self.data = extension_utils.get_extension_data(self.schema_name)
         response = self.tester.post(

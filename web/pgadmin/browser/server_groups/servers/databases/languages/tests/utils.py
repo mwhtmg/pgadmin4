@@ -16,7 +16,7 @@ from regression.python_test_utils.test_utils import get_db_connection
 from regression.python_test_utils import test_utils as utils
 
 CURRENT_PATH = os.path.dirname(os.path.realpath(__file__))
-with open(CURRENT_PATH + "/language_test_data.json") as data_file:
+with open(f"{CURRENT_PATH}/language_test_data.json") as data_file:
     test_cases = json.load(data_file)
 
 
@@ -119,8 +119,8 @@ def delete_language(server, db_name, lang_name):
         language_count = len(languages)
         if language_count:
             pg_cursor.execute(
-                "DELETE FROM pg_catalog.pg_language where lanname='%s'" %
-                lang_name)
+                f"DELETE FROM pg_catalog.pg_language where lanname='{lang_name}'"
+            )
             connection.commit()
         connection.close()
     except Exception:

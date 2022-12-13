@@ -32,21 +32,20 @@ class CastsCreateGetFunctionsTestCase(BaseTestGenerator):
                                                  utils.SERVER_GROUP,
                                                  self.server_id,
                                                  self.db_id)
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
 
         if self.is_positive_test:
             response = cast_utils.api_create_cast_get_functions(self)
             cast_utils.assert_status_code(self, response)
 
-        else:
-            if self.mocking_required:
-                return_value_object = eval(self.mock_data["return_value"])
-                with patch(self.mock_data["function_name"],
-                           side_effect=[return_value_object]):
-                    response = cast_utils.api_create_cast_get_functions(self)
-                    cast_utils.assert_status_code(self, response)
-                    cast_utils.assert_error_message(self, response)
+        elif self.mocking_required:
+            return_value_object = eval(self.mock_data["return_value"])
+            with patch(self.mock_data["function_name"],
+                       side_effect=[return_value_object]):
+                response = cast_utils.api_create_cast_get_functions(self)
+                cast_utils.assert_status_code(self, response)
+                cast_utils.assert_error_message(self, response)
 
     def tearDown(self):
         """This function disconnect the test database and drop added cast."""

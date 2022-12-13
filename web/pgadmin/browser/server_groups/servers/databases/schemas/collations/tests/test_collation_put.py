@@ -34,7 +34,7 @@ class CollationPutTestCase(BaseTestGenerator):
         self.server_id = self.schema_info["server_id"]
         self.db_id = self.schema_info["db_id"]
         self.schema_id = self.schema_info["schema_id"]
-        coll_name = "collation_get_%s" % str(uuid.uuid4())[1:8]
+        coll_name = f"collation_get_{str(uuid.uuid4())[1:8]}"
         self.collation = collation_utils.create_collation(self.server,
                                                           self.schema_name,
                                                           coll_name,

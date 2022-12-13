@@ -34,7 +34,7 @@ class DomainGetCollationsTestCase(BaseTestGenerator):
         self.db_id = schema_info["db_id"]
         self.schema_id = schema_info["schema_id"]
         self.schema_name = schema_info["schema_name"]
-        self.domain_name = "domain_get_%s" % (str(uuid.uuid4())[1:8])
+        self.domain_name = f"domain_get_{str(uuid.uuid4())[1:8]}"
         self.domain_info = domain_utils.create_domain(self.server,
                                                       self.db_name,
                                                       self.schema_name,

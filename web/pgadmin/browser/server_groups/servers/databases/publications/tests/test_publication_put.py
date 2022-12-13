@@ -52,7 +52,7 @@ class PublicationUpdateTestCase(BaseTestGenerator):
                                                       self.schema_name)
         if not schema_response:
             raise Exception("Could not find the schema to delete publication.")
-        self.table_name = "table_column_%s" % (str(uuid.uuid4())[1:8])
+        self.table_name = f"table_column_{str(uuid.uuid4())[1:8]}"
 
         self.server_version = schema_info["server_version"]
         if self.server_version < 99999:
@@ -64,10 +64,9 @@ class PublicationUpdateTestCase(BaseTestGenerator):
         self.table_id = tables_utils.create_table(self.server, self.db_name,
                                                   self.schema_name,
                                                   self.table_name)
-        self.publication_name = "test_publication_update_%s" % (
-            str(uuid.uuid4())[1:8])
+        self.publication_name = f"test_publication_update_{str(uuid.uuid4())[1:8]}"
         self.publication_id = \
-            publication_utils.create_publication(self.server, self.db_name,
+                publication_utils.create_publication(self.server, self.db_name,
                                                  self.publication_name)
 
     def update_publication(self, data):
@@ -83,12 +82,11 @@ class PublicationUpdateTestCase(BaseTestGenerator):
         """This function will update the publication."""
 
         publication_name = publication_utils. \
-            verify_publication(self.server,
+                verify_publication(self.server,
                                self.db_name,
                                self.publication_name)
         if hasattr(self, "update_name"):
-            self.test_data['name'] = "test_publication_update_%s" % (
-                str(uuid.uuid4())[1:8])
+            self.test_data['name'] = f"test_publication_update_{str(uuid.uuid4())[1:8]}"
         else:
             self.test_data['name'] = self.publication_name
         self.test_data['id'] = self.publication_id

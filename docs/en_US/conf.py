@@ -21,7 +21,7 @@ builtins.SERVER_MODE = None
 
 # Import the pgAdmin config
 root = os.path.dirname(os.path.realpath(__file__))
-sys.path.insert(0, root + '/../../web/')
+sys.path.insert(0, f'{root}/../../web/')
 import config
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -59,7 +59,7 @@ copyright = config.APP_COPYRIGHT.replace('Copyright', '').strip(' ')
 # built documents.
 #
 # The short X.Y version.
-version = '%s.%s' % (config.APP_RELEASE, config.APP_REVISION)
+version = f'{config.APP_RELEASE}.{config.APP_REVISION}'
 # The full version, including alpha/beta/rc tags.
 release = config.APP_VERSION
 

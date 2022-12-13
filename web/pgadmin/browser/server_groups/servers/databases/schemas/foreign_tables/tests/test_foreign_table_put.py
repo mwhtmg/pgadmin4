@@ -52,9 +52,9 @@ class ForeignTablePutTestCase(BaseTestGenerator):
         self.schema_id = self.schema_data['schema_id']
 
         # Create FDW, server & table
-        self.fdw_name = "fdw_%s" % (str(uuid.uuid4())[1:8])
-        self.fsrv_name = "fsrv_%s" % (str(uuid.uuid4())[1:8])
-        self.ft_name = "ft_%s" % (str(uuid.uuid4())[1:8])
+        self.fdw_name = f"fdw_{str(uuid.uuid4())[1:8]}"
+        self.fsrv_name = f"fsrv_{str(uuid.uuid4())[1:8]}"
+        self.ft_name = f"ft_{str(uuid.uuid4())[1:8]}"
 
         self.fdw_id = fdw_utils.create_fdw(self.server, self.db_name,
                                            self.fdw_name)
@@ -82,7 +82,7 @@ class ForeignTablePutTestCase(BaseTestGenerator):
                                                  self.server_id,
                                                  self.db_id)
 
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
 
         fsrv_response = fsrv_utils.verify_fsrv(self.server, self.db_name,

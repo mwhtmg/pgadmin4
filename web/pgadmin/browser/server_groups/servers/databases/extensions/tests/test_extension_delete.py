@@ -40,7 +40,7 @@ class ExtensionsDeleteTestCase(BaseTestGenerator):
                                                  utils.SERVER_GROUP,
                                                  self.server_id,
                                                  self.db_id)
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
         response = extension_utils.verify_extension(self.server, self.db_name,
                                                     self.extension_name)

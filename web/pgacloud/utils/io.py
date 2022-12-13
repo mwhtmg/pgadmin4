@@ -20,8 +20,7 @@ def debug(args, message):
 
     now = datetime.datetime.now()
 
-    print('[{}]: {}'.format(now.strftime("%H:%M:%S"), message),
-          file=sys.stderr, flush=True)
+    print(f'[{now.strftime("%H:%M:%S")}]: {message}', file=sys.stderr, flush=True)
 
 
 def error(args, message):

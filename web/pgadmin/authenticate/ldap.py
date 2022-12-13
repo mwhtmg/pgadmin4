@@ -48,8 +48,6 @@ class LDAPAuthentication(BaseAuthentication):
         self.password = form.data['password']
         self.dedicated_user = True
         self.start_tls = False
-        user_email = None
-
         # Check the dedicated ldap user
         self.bind_user = getattr(config, 'LDAP_BIND_USER', None)
         self.bind_pass = getattr(config, 'LDAP_BIND_PASSWORD', None)
@@ -63,8 +61,7 @@ class LDAPAuthentication(BaseAuthentication):
 
         # if no dedicated ldap user is configured then use the login
         # username and password
-        if not self.bind_user and not self.bind_pass and\
-                self.anonymous_bind is False:
+        if not self.bind_user and not self.bind_pass and not self.anonymous_bind:
             user_dn = "{0}={1},{2}".format(config.LDAP_USERNAME_ATTRIBUTE,
                                            self.username,
                                            config.LDAP_BASE_DN
@@ -96,9 +93,7 @@ class LDAPAuthentication(BaseAuthentication):
             if not status:
                 return status, msg
 
-        if 'mail' in ldap_user:
-            user_email = ldap_user['mail'].value
-
+        user_email = ldap_user['mail'].value if 'mail' in ldap_user else None
         return self.__auto_create_user(user_email)
 
     def connect(self):
@@ -110,7 +105,7 @@ class LDAPAuthentication(BaseAuthentication):
             return status, server
 
         auto_bind = AUTO_BIND_TLS_BEFORE_BIND if self.start_tls \
-            else AUTO_BIND_NO_TLS
+                else AUTO_BIND_NO_TLS
 
         # Create the connection
         try:
@@ -134,11 +129,9 @@ class LDAPAuthentication(BaseAuthentication):
         except LDAPBindError as e:
             current_app.logger.exception(
                 "Error binding to the LDAP server.")
-            return False, gettext("Error binding to the LDAP server: {}\n".
-                                  format(e.args[0]))
+            return False, gettext(f"Error binding to the LDAP server: {e.args[0]}\n")
         except LDAPStartTLSError as e:
-            current_app.logger.exception(
-                "Error starting TLS: {}\n".format(e))
+            current_app.logger.exception(f"Error starting TLS: {e}\n")
             return False, gettext("Error starting TLS: {}\n"
                                   ).format(e.args[0])
         except Exception as e:
@@ -208,8 +201,7 @@ class LDAPAuthentication(BaseAuthentication):
                 version=ssl.PROTOCOL_TLSv1_2,
                 ca_certs_file=ca_cert_file)
         except LDAPSSLConfigurationError as e:
-            current_app.logger.exception(
-                "LDAP configuration error: {}\n".format(e))
+            current_app.logger.exception(f"LDAP configuration error: {e}\n")
             return False, gettext("LDAP configuration error: {}\n").format(
                 e.args[0])
         return True, tls
@@ -245,7 +237,7 @@ class LDAPAuthentication(BaseAuthentication):
                             tls=tls,
                             connect_timeout=config.LDAP_CONNECTION_TIMEOUT)
         except ValueError as e:
-            return False, "LDAP configuration error: {}.".format(e)
+            return False, f"LDAP configuration error: {e}."
 
         return True, server
 
@@ -254,12 +246,12 @@ class LDAPAuthentication(BaseAuthentication):
          search criteria."""
         try:
             search_base_dn = config.LDAP_SEARCH_BASE_DN
-            if (not search_base_dn or search_base_dn == '<Search-Base-DN>')\
-                    and (self.anonymous_bind or self.dedicated_user):
-                return False, gettext("LDAP configuration error: "
-                                      "Set the Search Domain.")
-            elif not search_base_dn or search_base_dn == '<Search-Base-DN>':
-                search_base_dn = config.LDAP_BASE_DN
+            if (not search_base_dn or search_base_dn == '<Search-Base-DN>'):
+                if self.anonymous_bind or self.dedicated_user:
+                    return False, gettext("LDAP configuration error: "
+                                          "Set the Search Domain.")
+                else:
+                    search_base_dn = config.LDAP_BASE_DN
 
             search_filter = "({0}={1})".format(config.LDAP_USERNAME_ATTRIBUTE,
                                                self.username)

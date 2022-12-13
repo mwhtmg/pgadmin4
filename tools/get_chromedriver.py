@@ -37,9 +37,7 @@ def read_command_line():
     parser.add_argument("directory", metavar="DIRECTORY",
                         help="the directory in which to save chromedriver")
 
-    args = parser.parse_args()
-
-    return args
+    return parser.parse_args()
 
 
 def get_chrome_version(args):
@@ -122,14 +120,12 @@ def get_chromedriver_version(chrome_version):
     Returns:
         The chromedriver version number
     """
-    url = 'https://chromedriver.storage.googleapis.com/LATEST_RELEASE_{}' \
-        .format(chrome_version)
+    url = f'https://chromedriver.storage.googleapis.com/LATEST_RELEASE_{chrome_version}'
 
     try:
         fp = urlopen(url)
     except URLError as e:
-        print('The chromedriver catalog URL could not be accessed: {}'
-              .format(e))
+        print(f'The chromedriver catalog URL could not be accessed: {e}')
         sys.exit(1)
 
     version = fp.read().decode("utf-8").strip()
@@ -151,12 +147,12 @@ def get_system():
     elif platform.system() == 'Windows':
         return 'win32'
     else:
-        print("Unknown or unsupported operating system: {}"
-              .format(platform.system()))
+        print(f"Unknown or unsupported operating system: {platform.system()}")
         sys.exit(1)
 
 
 """The core structure of the app."""
+
 
 # Read the command line options
 args = read_command_line()
@@ -172,39 +168,35 @@ chromedriver_version = get_chromedriver_version(chrome_version)
 
 system = get_system()
 
-url = 'https://chromedriver.storage.googleapis.com/{}/chromedriver_{}.zip' \
-    .format(chromedriver_version, system)
+url = f'https://chromedriver.storage.googleapis.com/{chromedriver_version}/chromedriver_{system}.zip'
 
-print('Downloading chromedriver v{} for Chrome v{} on {}...'
-      .format(chromedriver_version, chrome_version, system))
+print(
+    f'Downloading chromedriver v{chromedriver_version} for Chrome v{chrome_version} on {system}...'
+)
 
 try:
     file, headers = urlretrieve(url)
 except URLError as e:
-    print('The chromedriver download URL could not be accessed: {}'
-          .format(e))
+    print(f'The chromedriver download URL could not be accessed: {e}')
     sys.exit(1)
 
 # Unzip chromedriver
 print('Extracting chromedriver...')
 
 found = False
-fp = open(file, 'rb')
-z = zipfile.ZipFile(fp)
-for name in z.namelist():
-    if (system == 'win32' and name == 'chromedriver.exe') or \
-            (system != 'win32' and name == 'chromedriver'):
-        z.extract(name, args.directory)
-        found = True
-fp.close()
-
+with open(file, 'rb') as fp:
+    z = zipfile.ZipFile(fp)
+    for name in z.namelist():
+        if (system == 'win32' and name == 'chromedriver.exe') or \
+                (system != 'win32' and name == 'chromedriver'):
+            z.extract(name, args.directory)
+            found = True
 if not found:
-    print("chromedriver could not be found in the downloaded archive: {}"
-          .format(file))
+    print(f"chromedriver could not be found in the downloaded archive: {file}")
     sys.exit(1)
 
 # Set the permissions
-if system == 'mac64' or system == 'linux64':
+if system in ['mac64', 'linux64']:
     os.chmod(os.path.join(args.directory, 'chromedriver'), 0o755)
 
-print('Chromedriver downloaded to: {}'.format(args.directory))
+print(f'Chromedriver downloaded to: {args.directory}')

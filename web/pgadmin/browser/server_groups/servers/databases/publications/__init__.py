@@ -264,12 +264,9 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
                     pname=pname
                 )
 
-                pub_table = []
                 status, table_res = self.conn.execute_dict(table_sql)
 
-                for table in table_res['rows']:
-                    pub_table.append(table['pubtable'])
-
+                pub_table = [table['pubtable'] for table in table_res['rows']]
                 pub_table = ", ".join(str(elem) for elem in pub_table)
 
                 rows['pubtable'] = pub_table
@@ -290,22 +287,18 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
             sid: Server ID
             did: Database ID
         """
-        res = []
         sql = render_template("/".join([self.template_path,
                                         self._NODES_SQL]))
         status, result = self.conn.execute_2darray(sql)
         if not status:
             return internal_server_error(errormsg=result)
 
-        for row in result['rows']:
-            res.append(
-                self.blueprint.generate_browser_node(
-                    row['oid'],
-                    did,
-                    row['name'],
-                    icon="icon-publication"
-                ))
-
+        res = [
+            self.blueprint.generate_browser_node(
+                row['oid'], did, row['name'], icon="icon-publication"
+            )
+            for row in result['rows']
+        ]
         return make_json_response(
             data=res,
             status=200
@@ -356,13 +349,7 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
         """
         status, res = self._fetch_properties(did, pbid)
 
-        if not status:
-            return res
-
-        return ajax_response(
-            response=res,
-            status=200
-        )
+        return ajax_response(response=res, status=200) if status else res
 
     def _fetch_properties(self, did, pbid):
         """
@@ -396,12 +383,9 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
                 pname=pname
             )
 
-            pub_table = []
             status, table_res = self.conn.execute_dict(table_sql)
 
-            for table in table_res['rows']:
-                pub_table.append(table['pubtable'])
-
+            pub_table = [table['pubtable'] for table in table_res['rows']]
             res['rows'][0]['pubtable'] = pub_table
 
         return True, res['rows'][0]
@@ -417,9 +401,7 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
             did: Database ID
             pbid: Publication ID
         """
-        data = request.form if request.form else json.loads(
-            request.data, encoding='utf-8'
-        )
+        data = request.form or json.loads(request.data, encoding='utf-8')
 
         try:
 
@@ -430,16 +412,14 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
                 return sql
             sql = sql.strip('\n').strip(' ')
             status, res = self.conn.execute_dict(sql)
-            if not status:
-                return internal_server_error(errormsg=res)
-
-            return jsonify(
-                node=self.blueprint.generate_browser_node(
-                    pbid,
-                    did,
-                    name,
-                    icon="icon-%s" % self.node_type
+            return (
+                jsonify(
+                    node=self.blueprint.generate_browser_node(
+                        pbid, did, name, icon=f"icon-{self.node_type}"
+                    )
                 )
+                if status
+                else internal_server_error(errormsg=res)
             )
         except Exception as e:
             return internal_server_error(errormsg=str(e))
@@ -458,9 +438,7 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
             'name'
         ]
 
-        data = request.form if request.form else json.loads(
-            request.data, encoding='utf-8'
-        )
+        data = request.form or json.loads(request.data, encoding='utf-8')
         for arg in required_args:
             if arg not in data:
                 return make_json_response(
@@ -487,18 +465,18 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
             )
 
             status, r_set = self.conn.execute_dict(sql)
-            if not status:
-                return internal_server_error(errormsg=r_set)
-
-            return jsonify(
-                node=self.blueprint.generate_browser_node(
-                    r_set['rows'][0]['oid'],
-                    did,
-                    r_set['rows'][0]['name'],
-                    icon='icon-publication'
+            return (
+                jsonify(
+                    node=self.blueprint.generate_browser_node(
+                        r_set['rows'][0]['oid'],
+                        did,
+                        r_set['rows'][0]['name'],
+                        icon='icon-publication',
+                    )
                 )
+                if status
+                else internal_server_error(errormsg=r_set)
             )
-
         except Exception as e:
             return internal_server_error(errormsg=str(e))
 
@@ -514,9 +492,7 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
             pbid: Publication ID
         """
         if pbid is None:
-            data = request.form if request.form else json.loads(
-                request.data, encoding='utf-8'
-            )
+            data = request.form or json.loads(request.data, encoding='utf-8')
         else:
             data = {'ids': [pbid]}
 
@@ -574,10 +550,7 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
             try:
                 # comments should be taken as is because if user enters a
                 # json comment it is parsed by loads which should not happen
-                if k in ('description',):
-                    data[k] = v
-                else:
-                    data[k] = json.loads(v, encoding='utf-8')
+                data[k] = v if k in ('description',) else json.loads(v, encoding='utf-8')
             except ValueError:
                 data[k] = v
         try:
@@ -654,9 +627,6 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
             data: Contains the data of the selected publication node.
             pbid: Publication ID
         """
-        required_args = [
-            'name'
-        ]
         if pbid is not None:
             sql = render_template(
                 "/".join([self.template_path, self._PROPERTIES_SQL]), pbid=pbid
@@ -671,8 +641,11 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
             old_data = self._get_old_table_data(res['rows'][0]['name'], res)
 
             drop_table, add_table, drop_table_data, add_table_data = \
-                self._get_table_details_to_add_and_delete(old_data, data)
+                    self._get_table_details_to_add_and_delete(old_data, data)
 
+            required_args = [
+                'name'
+            ]
             for arg in required_args:
                 if arg not in data:
                     data[arg] = old_data[arg]
@@ -687,7 +660,7 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
                 add_table=add_table, add_table_data=add_table_data
             )
             return sql.strip('\n'), data['name'] if 'name' in data \
-                else old_data['name']
+                    else old_data['name']
         else:
 
             sql = render_template("/".join([self.template_path,
@@ -716,13 +689,9 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
         status, rset = self.conn.execute_2darray(sql)
         if not status:
             return internal_server_error(errormsg=res)
-        for row in rset['rows']:
-            res.append(
-                {
-                    'label': row['table'],
-                    'value': row['table']
-                }
-            )
+        res.extend(
+            {'label': row['table'], 'value': row['table']} for row in rset['rows']
+        )
         return make_json_response(
             data=res,
             status=200
@@ -741,12 +710,9 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
             pname=pname
         )
 
-        pub_table = []
         status, table_res = self.conn.execute_dict(table_sql)
 
-        for table in table_res['rows']:
-            pub_table.append(table['pubtable'])
-
+        pub_table = [table['pubtable'] for table in table_res['rows']]
         res['rows'][0]['pubtable'] = pub_table
 
         # Making copy of output for future use
@@ -794,9 +760,7 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
                                         self._CREATE_SQL]),
                               data=old_data, conn=self.conn)
 
-        sql_header = "-- Publication: {}".format(old_data['name'])
-        sql_header += "\n\n"
-
+        sql_header = f"-- Publication: {old_data['name']}" + "\n\n"
         sql_header += "-- "
 
         sql_header += render_template(
@@ -807,10 +771,7 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
 
         sql = sql_header + sql
 
-        if not json_resp:
-            return sql
-
-        return ajax_response(response=sql)
+        return ajax_response(response=sql) if json_resp else sql
 
     @check_precondition
     def dependents(self, gid, sid, did, pbid):
@@ -871,19 +832,19 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
             pname=pname
         )
         status, res = self.conn.execute_dict(table_sql)
-        if not status:
-            return internal_server_error(errormsg=res)
-
-        dependencies_result = []
-
-        for pub_table in res['rows']:
-            dependencies_result.append(
-                {'type': 'table',
-                 'name': pub_table['pubtable'],
-                 'field': 'normal',
-                 'oid': pub_table['oid']})
-
-        return dependencies_result
+        return (
+            [
+                {
+                    'type': 'table',
+                    'name': pub_table['pubtable'],
+                    'field': 'normal',
+                    'oid': pub_table['oid'],
+                }
+                for pub_table in res['rows']
+            ]
+            if status
+            else internal_server_error(errormsg=res)
+        )
 
     @check_precondition
     def fetch_objects_to_compare(self, sid, did):
@@ -895,7 +856,7 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
         :param did: Database Id
         :return:
         """
-        res = dict()
+        res = {}
 
         if self.manager.version < 100000:
             return res
@@ -925,18 +886,17 @@ class PublicationView(PGChildNodeView, SchemaDiffObjectCompare):
         sid = kwargs.get('sid')
         did = kwargs.get('did')
         oid = kwargs.get('oid')
-        data = kwargs.get('data', None)
+        data = kwargs.get('data')
         drop_sql = kwargs.get('drop_sql', False)
 
         if data:
             sql, name = self.get_sql(data=data, pbid=oid)
+        elif drop_sql:
+            sql = self.delete(gid=gid, sid=sid, did=did,
+                              pbid=oid, only_sql=True)
         else:
-            if drop_sql:
-                sql = self.delete(gid=gid, sid=sid, did=did,
-                                  pbid=oid, only_sql=True)
-            else:
-                sql = self.sql(gid=gid, sid=sid, did=did, pbid=oid,
-                               json_resp=False)
+            sql = self.sql(gid=gid, sid=sid, did=did, pbid=oid,
+                           json_resp=False)
         return sql
 
 

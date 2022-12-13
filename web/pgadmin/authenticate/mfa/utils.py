@@ -82,7 +82,7 @@ def mfa_suppored_methods() -> dict:
         dict: List of all supported MFA methods with the flag for the
               registered with the current user or not.
     """
-    supported_mfa_auth_methods = dict()
+    supported_mfa_auth_methods = {}
 
     for auth_method in config.MFA_SUPPORTED_METHODS:
         registry = MultiFactorAuthRegistry.get(auth_method)
@@ -108,8 +108,8 @@ def user_supported_mfa_methods():
         dict: dict for the auth methods
     """
     auths = UserMFA.query.filter_by(user_id=current_user.id).all()
-    res = dict()
-    supported_mfa_auth_methods = dict()
+    res = {}
+    supported_mfa_auth_methods = {}
 
     if len(auths) > 0:
         for auth_method in config.MFA_SUPPORTED_METHODS:
@@ -159,8 +159,7 @@ def mfa_enabled(execute_if_enabled, execute_if_disabled) -> None:
     enabled = getattr(config, "MFA_ENABLED", False)
     supported_methods = getattr(config, "MFA_SUPPORTED_METHODS", [])
 
-    if is_server_mode is True and enabled is True and \
-            type(supported_methods) == list:
+    if is_server_mode and enabled and type(supported_methods) == list:
         supported_methods, _ = segregate_valid_and_invalid_mfa_methods(
             supported_methods
         )
@@ -189,9 +188,11 @@ def mfa_user_force_registration_required(register, not_register) -> None:
     Returns:
         None: Expecting the methods to return None as it will not be consumed.
     """
-    return register() \
-        if getattr(config, "MFA_FORCE_REGISTRATION", False) is True else \
-        not_register()
+    return (
+        register()
+        if getattr(config, "MFA_FORCE_REGISTRATION", False)
+        else not_register()
+    )
 
 
 def mfa_user_registered(registered, not_registered) -> None:
@@ -402,7 +403,4 @@ def fetch_auth_option(auth_name: str) -> (str, bool):
         user_id=current_user.id, mfa_auth=auth_name
     ).first()
 
-    if auth is None:
-        return None, False
-
-    return auth.options, True
+    return (None, False) if auth is None else (auth.options, True)

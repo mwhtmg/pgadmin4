@@ -52,14 +52,12 @@ class PublicationDeleteTestCases(BaseTestGenerator):
                                                       self.schema_name)
         if not schema_response:
             raise Exception("Could not find the schema to delete publication.")
-        self.table_name = "table_column_%s" % (str(uuid.uuid4())[1:8])
+        self.table_name = f"table_column_{str(uuid.uuid4())[1:8]}"
         self.table_id = tables_utils.create_table(self.server, self.db_name,
                                                   self.schema_name,
                                                   self.table_name)
-        self.publication_name = "test_publication_delete_%s" % (
-            str(uuid.uuid4())[1:8])
-        self.publication_name_1 = "test_publication_delete_%s" % (
-            str(uuid.uuid4())[1:8])
+        self.publication_name = f"test_publication_delete_{str(uuid.uuid4())[1:8]}"
+        self.publication_name_1 = f"test_publication_delete_{str(uuid.uuid4())[1:8]}"
         self.publication_ids = [
             publication_utils.create_publication(self.server, self.db_name,
                                                  self.publication_name),

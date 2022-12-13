@@ -28,7 +28,7 @@ class LanguagesAddTestCase(BaseTestGenerator):
         super(LanguagesAddTestCase, self).setUp()
         db_user = self.server['username']
         self.data = self.test_data
-        self.data['name'] = "language_%s" % str(uuid.uuid4())[1:8]
+        self.data['name'] = f"language_{str(uuid.uuid4())[1:8]}"
         self.data['lanowner'] = db_user
         self.server_data = parent_node_dict["database"][-1]
         self.server_id = self.server_data["server_id"]
@@ -38,7 +38,7 @@ class LanguagesAddTestCase(BaseTestGenerator):
                                                  utils.SERVER_GROUP,
                                                  self.server_id,
                                                  self.db_id)
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
 
     def runTest(self):

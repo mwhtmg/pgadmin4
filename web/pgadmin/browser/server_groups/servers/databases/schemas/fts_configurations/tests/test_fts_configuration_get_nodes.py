@@ -44,24 +44,24 @@ class FTSConfigurationNodesTestCase(BaseTestGenerator):
         self.extension_name = "postgres_fdw"
         self.db_name = parent_node_dict["database"][-1]["db_name"]
         self.db_user = self.server["username"]
-        self.func_name = "fts_configuration_func_%s" % str(uuid.uuid4())[1:8]
-        self.fts_configuration_name = "fts_configuration_delete_%s" % (
-            str(uuid.uuid4())[1:8])
+        self.func_name = f"fts_configuration_func_{str(uuid.uuid4())[1:8]}"
+        self.fts_configuration_name = (
+            f"fts_configuration_delete_{str(uuid.uuid4())[1:8]}"
+        )
         server_con = server_utils.connect_server(self, self.server_id)
-        if not server_con["info"] == "Server connected.":
+        if server_con["info"] != "Server connected.":
             raise Exception("Could not connect to server to add resource "
                             "groups.")
         server_version = 0
-        if "type" in server_con["data"]:
-            if server_con["data"]["version"] < 90500:
-                message = "FTS Configuration are not supported by PG9.4 " \
+        if "type" in server_con["data"] and server_con["data"]["version"] < 90500:
+            message = "FTS Configuration are not supported by PG9.4 " \
                           "and PPAS9.4 and below."
-                self.skipTest(message)
+            self.skipTest(message)
         self.function_info = fts_config_funcs_utils.create_trigger_function(
             self.server, self.db_name, self.schema_name, self.func_name,
             server_version)
         self.fts_configuration_id = fts_configurations_utils. \
-            create_fts_configuration(
+                create_fts_configuration(
                 self.server, self.db_name, self.schema_name,
                 self.fts_configuration_name)
 
@@ -97,7 +97,7 @@ class FTSConfigurationNodesTestCase(BaseTestGenerator):
                                                  self.server_id,
                                                  self.db_id)
 
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
 
         schema_response = schema_utils.verify_schemas(self.server,
@@ -114,18 +114,18 @@ class FTSConfigurationNodesTestCase(BaseTestGenerator):
             raise Exception("Could not find the FTS Configuration.")
 
         if self.is_positive_test:
-            if hasattr(self, "node"):
-                response = self.get_fts_configuration_node()
-            else:
-                response = self.get_fts_configuration_nodes()
-        else:
-            if hasattr(self, "error_fetching_fts_configuration"):
-                with patch(self.mock_data["function_name"],
-                           return_value=eval(self.mock_data["return_value"])):
-                    if hasattr(self, "node"):
-                        response = self.get_fts_configuration_node()
-                    else:
-                        response = self.get_fts_configuration_nodes()
+            response = (
+                self.get_fts_configuration_node()
+                if hasattr(self, "node")
+                else self.get_fts_configuration_nodes()
+            )
+        elif hasattr(self, "error_fetching_fts_configuration"):
+            with patch(self.mock_data["function_name"],
+                       return_value=eval(self.mock_data["return_value"])):
+                if hasattr(self, "node"):
+                    response = self.get_fts_configuration_node()
+                else:
+                    response = self.get_fts_configuration_nodes()
 
         actual_response_code = response.status_code
         expected_response_code = self.expected_data['status_code']

@@ -30,8 +30,10 @@ class CollationDeleteMultipleTestCase(BaseTestGenerator):
         self.schema_info = parent_node_dict["schema"][-1]
         self.schema_name = self.schema_info["schema_name"]
         self.db_name = parent_node_dict["database"][-1]["db_name"]
-        coll_names = ["collation_get_%s" % str(uuid.uuid4())[1:8],
-                      "collation_get_%s" % str(uuid.uuid4())[1:8]]
+        coll_names = [
+            f"collation_get_{str(uuid.uuid4())[1:8]}",
+            f"collation_get_{str(uuid.uuid4())[1:8]}",
+        ]
 
         self.collations = [collation_utils.create_collation(self.server,
                                                             self.schema_name,

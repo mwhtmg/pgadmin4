@@ -37,8 +37,8 @@ class ForeignServerGetTestCase(BaseTestGenerator):
         self.db_name = parent_node_dict["database"][-1]["db_name"]
         self.schema_name = self.schema_data['schema_name']
         self.extension_name = "cube"
-        self.fdw_name = "fdw_%s" % (str(uuid.uuid4())[1:8])
-        self.fsrv_name = "test_fsrv_add_%s" % (str(uuid.uuid4())[1:8])
+        self.fdw_name = f"fdw_{str(uuid.uuid4())[1:8]}"
+        self.fsrv_name = f"test_fsrv_add_{str(uuid.uuid4())[1:8]}"
         self.extension_id = extension_utils.create_extension(
             self.server, self.db_name, self.extension_name, self.schema_name)
         self.fdw_id = fdw_utils.create_fdw(self.server, self.db_name,
@@ -76,7 +76,7 @@ class ForeignServerGetTestCase(BaseTestGenerator):
                                                  utils.SERVER_GROUP,
                                                  self.server_id,
                                                  self.db_id)
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
         fdw_response = fdw_utils.verify_fdw(self.server, self.db_name,
                                             self.fdw_name)

@@ -53,13 +53,13 @@ class ForeignTableAddTestCase(BaseTestGenerator):
         self.schema_id = self.schema_data['schema_id']
 
         # Create FDW & server
-        self.fdw_name = "fdw_%s" % (str(uuid.uuid4())[1:8])
-        self.fsrv_name = "fsrv_%s" % (str(uuid.uuid4())[1:8])
+        self.fdw_name = f"fdw_{str(uuid.uuid4())[1:8]}"
+        self.fsrv_name = f"fsrv_{str(uuid.uuid4())[1:8]}"
         self.fdw_id = fdw_utils.create_fdw(self.server, self.db_name,
                                            self.fdw_name)
         self.fsrv_id = fsrv_utils.create_fsrv(self.server, self.db_name,
                                               self.fsrv_name, self.fdw_name)
-        self.ft_name = "ft_%s" % (str(uuid.uuid4())[1:8])
+        self.ft_name = f"ft_{str(uuid.uuid4())[1:8]}"
 
         self.data['basensp'] = self.schema_name
         self.data['ftsrvname'] = self.fsrv_name
@@ -74,7 +74,7 @@ class ForeignTableAddTestCase(BaseTestGenerator):
                                                  self.server_id,
                                                  self.db_id)
 
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
 
         fsrv_response = fsrv_utils.verify_fsrv(self.server, self.db_name,
@@ -95,21 +95,20 @@ class ForeignTableAddTestCase(BaseTestGenerator):
 
             self.assertIsNotNone(cross_check_res, "Could not find the newly"
                                                   " created foreign table.")
-        else:
-            if self.mocking_required:
-                with patch(self.mock_data["function_name"],
-                           side_effect=eval(self.mock_data["return_value"])):
-                    response = ft_utils.api_create(self)
-
-                    # Assert response
-                    utils.assert_status_code(self, response)
-                    utils.assert_error_message(self, response)
-            else:
-                del self.data['ftsrvname']
+        elif self.mocking_required:
+            with patch(self.mock_data["function_name"],
+                       side_effect=eval(self.mock_data["return_value"])):
                 response = ft_utils.api_create(self)
+
                 # Assert response
                 utils.assert_status_code(self, response)
                 utils.assert_error_message(self, response)
+        else:
+            del self.data['ftsrvname']
+            response = ft_utils.api_create(self)
+            # Assert response
+            utils.assert_status_code(self, response)
+            utils.assert_error_message(self, response)
 
     def tearDown(self):
         """ This function disconnect the test database and delete test

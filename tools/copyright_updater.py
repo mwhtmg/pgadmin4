@@ -57,9 +57,7 @@ def find_replace(directory, find, replace):
                     content = fp.read()
 
                 is_update_required = False
-                new_content = COPYRIGHT_PATTERN.sub(
-                    r'\g<1>{},'.format(replace), content
-                )
+                new_content = COPYRIGHT_PATTERN.sub(f'\g<1>{replace},', content)
                 if new_content != content:
                     is_update_required = True
 
@@ -100,4 +98,4 @@ if __name__ == '__main__':
     if len(failed) > 0:
         print("Failed to process the following files:\n", "\n\t".join(failed))
 
-    print("\nUpdated {} files.".format(files_affected))
+    print(f"\nUpdated {files_affected} files.")

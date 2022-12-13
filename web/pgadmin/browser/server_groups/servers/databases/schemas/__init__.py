@@ -159,7 +159,7 @@ def check_precondition(f):
             _temp = self.ppas_template_path(self.manager.version)
         else:
             _temp = self.pg_template_path(self.manager.version)
-        self.template_path = self.template_initial + '/' + _temp
+        self.template_path = f'{self.template_initial}/{_temp}'
 
         return f(*args, **kwargs)
 
@@ -307,7 +307,7 @@ class SchemaView(PGChildNodeView):
             Formatted output required for client side parsing
         """
         # Reset any data for that acl if its already present in result set
-        data = dict()
+        data = {}
         for row in acl['rows']:
             priv = parse_priv_from_db(row)
 
@@ -332,10 +332,7 @@ class SchemaView(PGChildNodeView):
         if 'seclabels' in data and data['seclabels'] is not None:
             for sec in data['seclabels']:
                 sec = re.search(r'([^=]+)=(.*$)', sec)
-                seclabels.append({
-                    'provider': sec.group(1),
-                    'label': sec.group(2)
-                })
+                seclabels.append({'provider': sec[1], 'label': sec[2]})
 
         data['seclabels'] = seclabels
 
@@ -406,11 +403,10 @@ class SchemaView(PGChildNodeView):
         )
         status, res = self.conn.execute_dict(SQL)
 
-        if not status:
-            return internal_server_error(errormsg=res)
-        return ajax_response(
-            response=res['rows'],
-            status=200
+        return (
+            ajax_response(response=res['rows'], status=200)
+            if status
+            else internal_server_error(errormsg=res)
         )
 
     @check_precondition
@@ -429,7 +425,6 @@ class SchemaView(PGChildNodeView):
         Returns:
             JSON of available schema child nodes
         """
-        res = []
         database = Database.query.filter_by(id=did, server=sid).first()
         param = None
         if database:
@@ -474,18 +469,17 @@ class SchemaView(PGChildNodeView):
                 status=200
             )
 
-        for row in rset['rows']:
-            res.append(
-                self.blueprint.generate_browser_node(
-                    row['oid'],
-                    did,
-                    row['name'],
-                    icon=self.node_icon,
-                    can_create=row['can_create'],
-                    has_usage=row['has_usage']
-                )
+        res = [
+            self.blueprint.generate_browser_node(
+                row['oid'],
+                did,
+                row['name'],
+                icon=self.node_icon,
+                can_create=row['can_create'],
+                has_usage=row['has_usage'],
             )
-
+            for row in rset['rows']
+        ]
         return make_json_response(
             data=res,
             status=200
@@ -589,9 +583,7 @@ It may have been removed by another user.
            sid: Server ID
            did: Database ID
         """
-        data = request.form if request.form else json.loads(
-            request.data, encoding='utf-8'
-        )
+        data = request.form or json.loads(request.data, encoding='utf-8')
 
         required_args = {
             'name': 'Name'
@@ -629,16 +621,14 @@ It may have been removed by another user.
             )
 
             status, scid = self.conn.execute_scalar(SQL)
-            if not status:
-                return internal_server_error(errormsg=scid)
-
-            return jsonify(
-                node=self.blueprint.generate_browser_node(
-                    scid,
-                    did,
-                    data['name'],
-                    icon=self.node_icon
+            return (
+                jsonify(
+                    node=self.blueprint.generate_browser_node(
+                        scid, did, data['name'], icon=self.node_icon
+                    )
                 )
+                if status
+                else internal_server_error(errormsg=scid)
             )
         except Exception as e:
             current_app.logger.exception(e)
@@ -655,24 +645,20 @@ It may have been removed by another user.
            did: Database ID
            scid: Schema ID
         """
-        data = request.form if request.form else json.loads(
-            request.data, encoding='utf-8'
-        )
+        data = request.form or json.loads(request.data, encoding='utf-8')
         try:
             SQL, name = self.get_sql(gid, sid, data, scid)
 
             SQL = SQL.strip('\n').strip(' ')
             status, res = self.conn.execute_scalar(SQL)
-            if not status:
-                return internal_server_error(errormsg=res)
-
-            return jsonify(
-                node=self.blueprint.generate_browser_node(
-                    scid,
-                    did,
-                    name,
-                    icon=self.node_icon
+            return (
+                jsonify(
+                    node=self.blueprint.generate_browser_node(
+                        scid, did, name, icon=self.node_icon
+                    )
                 )
+                if status
+                else internal_server_error(errormsg=res)
             )
         except Exception as e:
             return internal_server_error(errormsg=str(e))
@@ -690,9 +676,7 @@ It may have been removed by another user.
         """
 
         if scid is None:
-            data = request.form if request.form else json.loads(
-                request.data, encoding='utf-8'
-            )
+            data = request.form or json.loads(request.data, encoding='utf-8')
         else:
             data = {'ids': [scid]}
 
@@ -754,15 +738,12 @@ It may have been removed by another user.
            did: Database ID
            scid: Schema ID (When working with existing schema node)
         """
-        data = dict()
+        data = {}
         for k, v in request.args.items():
             try:
                 # comments should be taken as is because if user enters a
                 # json comment it is parsed by loads which should not happen
-                if k in ('description',):
-                    data[k] = v
-                else:
-                    data[k] = json.loads(v, encoding='utf-8')
+                data[k] = v if k in ('description',) else json.loads(v, encoding='utf-8')
             except ValueError:
                 data[k] = v
 

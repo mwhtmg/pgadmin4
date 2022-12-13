@@ -31,7 +31,4 @@ def get_extension_details(conn, ename, properties_sql=None):
         render_template(properties_sql, ename=ename)
     )
 
-    if status:
-        return True, rset['rows'][0]
-
-    return status, rset
+    return (True, rset['rows'][0]) if status else (status, rset)

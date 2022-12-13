@@ -39,7 +39,7 @@ class DomainGetTypesTestCase(BaseTestGenerator):
         self.db_id = schema_info["db_id"]
         self.schema_id = schema_info["schema_id"]
         self.schema_name = schema_info["schema_name"]
-        self.domain_name = "domain_get_%s" % (str(uuid.uuid4())[1:8])
+        self.domain_name = f"domain_get_{str(uuid.uuid4())[1:8]}"
         self.domain_info = domain_utils.create_domain(self.server,
                                                       self.db_name,
                                                       self.schema_name,
@@ -73,12 +73,11 @@ class DomainGetTypesTestCase(BaseTestGenerator):
         if self.is_positive_test:
             response = self.get_types()
 
-        else:
-            if hasattr(self, "internal_server_error"):
-                return_value_object = eval(self.mock_data["return_value"])
-                with patch(self.mock_data["function_name"],
-                           side_effect=[return_value_object]):
-                    response = self.get_types()
+        elif hasattr(self, "internal_server_error"):
+            return_value_object = eval(self.mock_data["return_value"])
+            with patch(self.mock_data["function_name"],
+                       side_effect=[return_value_object]):
+                response = self.get_types()
 
         expected_response_code = self.expected_data['status_code']
 

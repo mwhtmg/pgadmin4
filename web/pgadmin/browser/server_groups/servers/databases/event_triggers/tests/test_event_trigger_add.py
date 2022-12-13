@@ -35,18 +35,17 @@ class EventTriggerAddTestCase(BaseTestGenerator):
         self.schema_id = self.schema_data['schema_id']
         self.extension_name = "postgres_fdw"
         self.db_name = parent_node_dict["database"][-1]["db_name"]
-        self.func_name = "trigger_func_%s" % str(uuid.uuid4())[1:8]
+        self.func_name = f"trigger_func_{str(uuid.uuid4())[1:8]}"
         self.db_user = self.server["username"]
         server_con = server_utils.connect_server(self, self.server_id)
-        if not server_con["info"] == "Server connected.":
+        if server_con["info"] != "Server connected.":
             raise Exception("Could not connect to server to add resource "
                             "groups.")
         server_version = 0
-        if "type" in server_con["data"]:
-            if server_con["data"]["version"] < 90300:
-                message = "Event triggers are not supported by PG9.2 " \
+        if "type" in server_con["data"] and server_con["data"]["version"] < 90300:
+            message = "Event triggers are not supported by PG9.2 " \
                           "and PPAS9.2 and below."
-                self.skipTest(message)
+            self.skipTest(message)
         self.function_info = trigger_funcs_utils.create_trigger_function(
             self.server, self.db_name, self.schema_name, self.func_name,
             server_version)
@@ -82,11 +81,9 @@ class EventTriggerAddTestCase(BaseTestGenerator):
         if not func_response:
             raise Exception("Could not find the trigger function.")
 
-        self.test_data['eventfunname'] = "%s.%s" % (
-            self.schema_name, self.func_name)
+        self.test_data['eventfunname'] = f"{self.schema_name}.{self.func_name}"
         self.test_data['eventowner'] = self.db_user
-        self.test_data['name'] = "event_trigger_add_%s" % (
-            str(uuid.uuid4())[1:8])
+        self.test_data['name'] = f"event_trigger_add_{str(uuid.uuid4())[1:8]}"
         actual_response_code = True
         expected_response_code = False
 

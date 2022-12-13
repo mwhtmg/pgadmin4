@@ -27,13 +27,13 @@ class LanguagesGetTestCase(BaseTestGenerator):
         self.server_id = self.server_data["server_id"]
         self.db_id = self.server_data['db_id']
         self.db_name = self.server_data["db_name"]
-        self.lang_name = "language_%s" % str(uuid.uuid4())[1:8]
+        self.lang_name = f"language_{str(uuid.uuid4())[1:8]}"
         db_con = database_utils.connect_database(self,
                                                  utils.SERVER_GROUP,
                                                  self.server_id,
                                                  self.db_id)
 
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
         if self.is_positive_test:
             self.language_id = language_utils.create_language(self.server,
@@ -46,43 +46,43 @@ class LanguagesGetTestCase(BaseTestGenerator):
         actual_response_code = ''
         expected_status_code = 'none'
         if self.is_positive_test:
-            if hasattr(self, 'language_list'):
-                response = self.get_language_list()
-            else:
-                response = self.get_language_properties()
+            response = (
+                self.get_language_list()
+                if hasattr(self, 'language_list')
+                else self.get_language_properties()
+            )
             actual_response_code = response.status_code
             expected_status_code = self.expected_data['status_code']
-        else:
-            if hasattr(self, 'invalid_id'):
+        elif hasattr(self, 'invalid_id'):
+            self.language_id = 9999
+            response = self.get_language_properties()
+            actual_response_code = response.status_code
+            expected_status_code = self.expected_data['status_code']
+
+        elif hasattr(self, 'language_list') or \
+                    hasattr(self, 'error_in_language_properties'):
+            with patch(self.mock_data["function_name"],
+                       return_value=eval(self.mock_data["return_value"])):
+
+                if hasattr(self, 'language_list'):
+                    response = self.get_language_list()
+
+                elif hasattr(self, 'error_in_language_properties'):
+                    self.language_id = 9999
+                    response = self.get_language_properties()
+
+                actual_response_code = response.status_code
+                expected_status_code = self.expected_data['status_code']
+        elif self.language_acl:
+            dummy_dict = {"rows": {"data1": "1", "data2": "2"}}
+            self.mock_data['return_value'] = [(True, dummy_dict), (
+                False, self.expected_data["message"])]
+            with patch(self.mock_data["function_name"],
+                       side_effect=self.mock_data["return_value"]):
                 self.language_id = 9999
                 response = self.get_language_properties()
                 actual_response_code = response.status_code
                 expected_status_code = self.expected_data['status_code']
-
-            elif hasattr(self, 'language_list') or \
-                    hasattr(self, 'error_in_language_properties'):
-                with patch(self.mock_data["function_name"],
-                           return_value=eval(self.mock_data["return_value"])):
-
-                    if hasattr(self, 'language_list'):
-                        response = self.get_language_list()
-
-                    elif hasattr(self, 'error_in_language_properties'):
-                        self.language_id = 9999
-                        response = self.get_language_properties()
-
-                    actual_response_code = response.status_code
-                    expected_status_code = self.expected_data['status_code']
-            elif self.language_acl:
-                dummy_dict = {"rows": {"data1": "1", "data2": "2"}}
-                self.mock_data['return_value'] = [(True, dummy_dict), (
-                    False, self.expected_data["message"])]
-                with patch(self.mock_data["function_name"],
-                           side_effect=self.mock_data["return_value"]):
-                    self.language_id = 9999
-                    response = self.get_language_properties()
-                    actual_response_code = response.status_code
-                    expected_status_code = self.expected_data['status_code']
 
         self.assertEqual(actual_response_code, expected_status_code)
 
@@ -114,13 +114,13 @@ class LanguagesGetNodesTestCase(BaseTestGenerator):
         self.server_id = self.server_data["server_id"]
         self.db_id = self.server_data['db_id']
         self.db_name = self.server_data["db_name"]
-        self.lang_name = "language_%s" % str(uuid.uuid4())[1:8]
+        self.lang_name = f"language_{str(uuid.uuid4())[1:8]}"
         db_con = database_utils.connect_database(self,
                                                  utils.SERVER_GROUP,
                                                  self.server_id,
                                                  self.db_id)
 
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
         self.language_id = language_utils.create_language(self.server,
                                                           self.db_name,

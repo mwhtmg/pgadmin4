@@ -19,7 +19,7 @@ from setuptools import setup
 # Load a source file
 def load_source(name, path):
     if not os.path.exists(path):
-        print("ERROR: Could not find %s" % path)
+        print(f"ERROR: Could not find {path}")
         sys.exit(1)
 
     return SourceFileLoader(name, path).load_module()

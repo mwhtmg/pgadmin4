@@ -33,7 +33,7 @@ class CollationSqlTestCase(BaseTestGenerator):
         self.db_name = parent_node_dict["database"][-1]["db_name"]
         self.server_id = self.schema_info["server_id"]
         self.db_id = self.schema_info["db_id"]
-        self.coll_name = "collation_get_%s" % str(uuid.uuid4())[1:8]
+        self.coll_name = f"collation_get_{str(uuid.uuid4())[1:8]}"
         self.collation = collation_utils.create_collation(self.server,
                                                           self.schema_name,
                                                           self.coll_name,
@@ -80,11 +80,10 @@ class CollationSqlTestCase(BaseTestGenerator):
 
         if self.is_positive_test:
             response = self.get_collation_sql()
-        else:
-            if hasattr(self, "error_fetching_collation"):
-                with patch(self.mock_data["function_name"],
-                           return_value=eval(self.mock_data["return_value"])):
-                    response = self.get_collation_sql()
+        elif hasattr(self, "error_fetching_collation"):
+            with patch(self.mock_data["function_name"],
+                       return_value=eval(self.mock_data["return_value"])):
+                response = self.get_collation_sql()
 
         actual_response_code = response.status_code
         expected_response_code = self.expected_data['status_code']

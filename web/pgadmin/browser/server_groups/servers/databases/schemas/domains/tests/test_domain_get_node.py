@@ -33,7 +33,7 @@ class DomainGetNodeTestCase(BaseTestGenerator):
         self.db_id = schema_info["db_id"]
         self.schema_id = schema_info["schema_id"]
         self.schema_name = schema_info["schema_name"]
-        self.domain_name = "domain_get_%s" % (str(uuid.uuid4())[1:8])
+        self.domain_name = f"domain_get_{str(uuid.uuid4())[1:8]}"
         self.domain_info = domain_utils.create_domain(self.server,
                                                       self.db_name,
                                                       self.schema_name,
@@ -58,7 +58,7 @@ class DomainGetNodeTestCase(BaseTestGenerator):
                                                  utils.SERVER_GROUP,
                                                  self.server_id,
                                                  self.db_id)
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
         schema_response = schema_utils.verify_schemas(self.server,
                                                       self.db_name,
@@ -68,22 +68,22 @@ class DomainGetNodeTestCase(BaseTestGenerator):
         self.domain_id = self.domain_info[0]
 
         if self.is_positive_test:
-            if hasattr(self, "node"):
-                response = self.get_domain_node(self.domain_id)
-            else:
-                response = self.get_domain_node("")
+            response = (
+                self.get_domain_node(self.domain_id)
+                if hasattr(self, "node")
+                else self.get_domain_node("")
+            )
             actual_response_code = response.status_code
             expected_response_code = self.expected_data['status_code']
-        else:
-            if hasattr(self, "error_fetching_domain"):
-                with patch(self.mock_data["function_name"],
-                           return_value=eval(self.mock_data["return_value"])):
-                    if hasattr(self, "node"):
-                        response = self.get_domain_node(self.domain_id)
-                    else:
-                        response = self.get_domain_node("")
-                    actual_response_code = response.status_code
-                    expected_response_code = self.expected_data['status_code']
+        elif hasattr(self, "error_fetching_domain"):
+            with patch(self.mock_data["function_name"],
+                       return_value=eval(self.mock_data["return_value"])):
+                if hasattr(self, "node"):
+                    response = self.get_domain_node(self.domain_id)
+                else:
+                    response = self.get_domain_node("")
+                actual_response_code = response.status_code
+                expected_response_code = self.expected_data['status_code']
 
         self.assertEqual(actual_response_code, expected_response_code)
 

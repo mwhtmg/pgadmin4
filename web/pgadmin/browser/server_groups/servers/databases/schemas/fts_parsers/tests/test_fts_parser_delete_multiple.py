@@ -37,8 +37,8 @@ class FtsParserDeleteMultipleTestCase(BaseTestGenerator):
         self.server_id = self.schema_data['server_id']
         self.db_id = self.schema_data['db_id']
         self.db_name = parent_node_dict["database"][-1]["db_name"]
-        self.fts_parser_name = "fts_parser_%s" % str(uuid.uuid4())[1:8]
-        self.fts_parser_name_1 = "fts_parser_%s" % str(uuid.uuid4())[1:8]
+        self.fts_parser_name = f"fts_parser_{str(uuid.uuid4())[1:8]}"
+        self.fts_parser_name_1 = f"fts_parser_{str(uuid.uuid4())[1:8]}"
 
         self.fts_parser_ids = [fts_parser_utils.create_fts_parser(
             self.server,
@@ -59,7 +59,7 @@ class FtsParserDeleteMultipleTestCase(BaseTestGenerator):
                                                  self.server_id,
                                                  self.db_id)
 
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
 
         schema_response = schema_utils.verify_schemas(self.server,

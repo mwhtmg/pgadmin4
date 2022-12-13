@@ -40,8 +40,8 @@ class UserMappingPutTestCase(BaseTestGenerator):
         self.db_name = parent_node_dict["database"][-1]["db_name"]
         self.schema_name = self.schema_data['schema_name']
         self.extension_name = "cube"
-        self.fdw_name = "fdw_%s" % (str(uuid.uuid4())[1:8])
-        self.fsrv_name = "fsrv_%s" % (str(uuid.uuid4())[1:8])
+        self.fdw_name = f"fdw_{str(uuid.uuid4())[1:8]}"
+        self.fsrv_name = f"fsrv_{str(uuid.uuid4())[1:8]}"
         self.extension_id = extension_utils.create_extension(
             self.server, self.db_name, self.extension_name, self.schema_name)
         self.fdw_id = fdw_utils.create_fdw(self.server, self.db_name,
@@ -71,7 +71,7 @@ class UserMappingPutTestCase(BaseTestGenerator):
                                                  utils.SERVER_GROUP,
                                                  self.server_id,
                                                  self.db_id)
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
         fdw_response = fdw_utils.verify_fdw(self.server, self.db_name,
                                             self.fdw_name)
@@ -91,11 +91,10 @@ class UserMappingPutTestCase(BaseTestGenerator):
         if self.is_positive_test:
             put_response = self.update_user_mapping()
 
-        else:
-            if hasattr(self, "error_in_db"):
-                with patch(self.mock_data["function_name"],
-                           side_effect=eval(self.mock_data["return_value"])):
-                    put_response = self.update_user_mapping()
+        elif hasattr(self, "error_in_db"):
+            with patch(self.mock_data["function_name"],
+                       side_effect=eval(self.mock_data["return_value"])):
+                put_response = self.update_user_mapping()
 
         actual_response_code = put_response.status_code
         expected_response_code = self.expected_data['status_code']

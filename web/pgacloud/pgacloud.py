@@ -18,18 +18,17 @@ def load_providers():
     providers = {}
 
     path = os.path.dirname(os.path.realpath(__file__))
-    modules = os.listdir(path + '/providers')
+    modules = os.listdir(f'{path}/providers')
 
     for filename in modules:
-        filename = path + '/providers/' + filename
+        filename = f'{path}/providers/{filename}'
 
         if os.path.isfile(filename):
             basename = os.path.basename(filename)
             base, extension = os.path.splitext(basename)
 
             if extension == ".py" and not basename.startswith("_"):
-                module = __import__("providers." + basename[:-3],
-                                    fromlist=["providers"])
+                module = __import__(f"providers.{basename[:-3]}", fromlist=["providers"])
                 provider = module.load()
                 providers[basename[:-3]] = provider
 
@@ -70,14 +69,11 @@ def execute_command(providers, parser, args):
             args.command is not None:
         command = providers[args.provider].commands()[args.command]
         command(args)
+    elif args.provider is None:
+        parser.print_help()
     else:
-        # If no provider has been given, display the top level help,
-        # otherwise, call the help() method in the provider
-        if args.provider is None:
-            parser.print_help()
-        else:
-            command = providers[args.provider].commands()['help']
-            command()
+        command = providers[args.provider].commands()['help']
+        command()
 
 
 def main():

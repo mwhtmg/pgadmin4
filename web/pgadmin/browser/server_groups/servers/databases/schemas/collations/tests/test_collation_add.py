@@ -37,7 +37,7 @@ class CollationAddTestCase(BaseTestGenerator):
         self.db_id = self.schema_info["db_id"]
 
         # Change the db name, so that schema will create in newly created db
-        self.schema_name = "schema_get_%s" % str(uuid.uuid4())[1:8]
+        self.schema_name = f"schema_get_{str(uuid.uuid4())[1:8]}"
         connection = utils.get_db_connection(self.db_name,
                                              self.server['username'],
                                              self.server['db_password'],
@@ -74,7 +74,7 @@ class CollationAddTestCase(BaseTestGenerator):
             raise Exception("Could not find the schema to add the collation.")
 
         self.test_data['copy_collation'] = "pg_catalog.\"C\""
-        self.test_data['name'] = "collation_add_%s" % str(uuid.uuid4())[1:8]
+        self.test_data['name'] = f"collation_add_{str(uuid.uuid4())[1:8]}"
         self.test_data['owner'] = self.server["username"]
         self.test_data['schema'] = self.schema_name
 

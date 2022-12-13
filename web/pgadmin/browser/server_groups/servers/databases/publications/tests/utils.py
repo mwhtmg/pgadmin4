@@ -16,17 +16,15 @@ import traceback
 from regression.python_test_utils import test_utils as utils
 
 CURRENT_PATH = os.path.dirname(os.path.realpath(__file__))
-with open(CURRENT_PATH + "/publication_test_data.json") as data_file:
+with open(f"{CURRENT_PATH}/publication_test_data.json") as data_file:
     test_cases = json.load(data_file)
 
 
 def get_tables(self):
     tables = self.tester.get(
-        '/browser/publication/get_tables/' + str(
-            utils.SERVER_GROUP) + '/' + str(
-            self.server_id) + '/' +
-        str(self.db_id) + '/',
-        content_type='html/json')
+        f'/browser/publication/get_tables/{str(utils.SERVER_GROUP)}/{str(self.server_id)}/{str(self.db_id)}/',
+        content_type='html/json',
+    )
     return [tables.json['data'][0]['value']]
 
 
@@ -61,18 +59,18 @@ def create_publication(server, db_name, publication_name):
         old_isolation_level = connection.isolation_level
         connection.set_isolation_level(0)
         pg_cursor = connection.cursor()
-        query = "CREATE publication %s FOR ALL TABLES" % \
-                (publication_name)
+        query = f"CREATE publication {publication_name} FOR ALL TABLES"
         pg_cursor.execute(query)
         connection.set_isolation_level(old_isolation_level)
         connection.commit()
         # Get role oid of newly added publication
-        pg_cursor.execute("select oid from pg_catalog.pg_publication pub "
-                          "where pub.pubname='%s'" % publication_name)
-        publication = pg_cursor.fetchone()
-        publication_id = ''
-        if publication:
+        pg_cursor.execute(
+            f"select oid from pg_catalog.pg_publication pub where pub.pubname='{publication_name}'"
+        )
+        if publication := pg_cursor.fetchone():
             publication_id = publication[0]
+        else:
+            publication_id = ''
         connection.close()
         return publication_id
     except Exception:
@@ -133,15 +131,14 @@ def delete_publication(server, db_name, publication_name):
                                              server['sslmode'])
         pg_cursor = connection.cursor()
 
-        pg_cursor.execute("select * from pg_catalog.pg_publication pub where "
-                          "pub.pubname='%s'" %
-                          publication_name)
-        publication_count = pg_cursor.fetchone()
-        if publication_count:
+        pg_cursor.execute(
+            f"select * from pg_catalog.pg_publication pub where pub.pubname='{publication_name}'"
+        )
+        if publication_count := pg_cursor.fetchone():
             old_isolation_level = connection.isolation_level
             connection.set_isolation_level(0)
             pg_cursor = connection.cursor()
-            query = "DROP publication %s" % publication_name
+            query = f"DROP publication {publication_name}"
             pg_cursor.execute(query)
             connection.set_isolation_level(old_isolation_level)
             connection.commit()

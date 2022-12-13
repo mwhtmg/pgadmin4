@@ -30,7 +30,7 @@ class CollationNodesTestCase(BaseTestGenerator):
         self.schema_info = parent_node_dict["schema"][-1]
         self.schema_name = self.schema_info["schema_name"]
         self.db_name = parent_node_dict["database"][-1]["db_name"]
-        coll_name = "collation_get_%s" % str(uuid.uuid4())[1:8]
+        coll_name = f"collation_get_{str(uuid.uuid4())[1:8]}"
         self.collation = collation_utils.create_collation(self.server,
                                                           self.schema_name,
                                                           coll_name,
@@ -75,18 +75,18 @@ class CollationNodesTestCase(BaseTestGenerator):
         self.collation_id = self.collation[0]
 
         if self.is_positive_test:
-            if hasattr(self, "node"):
-                response = self.get_collation_node()
-            else:
-                response = self.get_collation_nodes()
-        else:
-            if hasattr(self, "error_fetching_collation"):
-                with patch(self.mock_data["function_name"],
-                           return_value=eval(self.mock_data["return_value"])):
-                    if hasattr(self, "node"):
-                        response = self.get_collation_node()
-                    else:
-                        response = self.get_collation_nodes()
+            response = (
+                self.get_collation_node()
+                if hasattr(self, "node")
+                else self.get_collation_nodes()
+            )
+        elif hasattr(self, "error_fetching_collation"):
+            with patch(self.mock_data["function_name"],
+                       return_value=eval(self.mock_data["return_value"])):
+                if hasattr(self, "node"):
+                    response = self.get_collation_node()
+                else:
+                    response = self.get_collation_nodes()
 
         actual_response_code = response.status_code
         expected_response_code = self.expected_data['status_code']

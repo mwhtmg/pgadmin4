@@ -34,11 +34,11 @@ class DomainConstraintDeleteMultipleTestCase(BaseTestGenerator):
         self.schema_name = schema_info["schema_name"]
         self.server_id = schema_info["server_id"]
         self.db_id = schema_info["db_id"]
-        self.domain_name = "domain_%s" % (str(uuid.uuid4())[1:8])
-        self.domain_con_names = ["test_domain_con_delete_%s" %
-                                 (str(uuid.uuid4())[1:8]),
-                                 "test_domain_con_delete_%s" %
-                                 (str(uuid.uuid4())[1:8])]
+        self.domain_name = f"domain_{str(uuid.uuid4())[1:8]}"
+        self.domain_con_names = [
+            f"test_domain_con_delete_{str(uuid.uuid4())[1:8]}",
+            f"test_domain_con_delete_{str(uuid.uuid4())[1:8]}",
+        ]
 
         self.domain_info = domain_cons_utils.create_domain(self.server,
                                                            self.db_name,

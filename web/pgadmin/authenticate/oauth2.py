@@ -121,8 +121,8 @@ class OAuth2Authentication(BaseAuthentication):
     def login(self, form):
         profile = self.get_user_profile()
         email_key = \
-            [value for value in self.email_keys if value in profile.keys()]
-        email = profile[email_key[0]] if (len(email_key) > 0) else None
+                [value for value in self.email_keys if value in profile.keys()]
+        email = profile[email_key[0]] if email_key else None
 
         if not email or email == '':
             current_app.logger.exception(
@@ -138,7 +138,7 @@ class OAuth2Authentication(BaseAuthentication):
             user = db.session.query(User).filter_by(
                 username=email, auth_source=OAUTH2).first()
             current_app.login_manager.logout_view = \
-                OAuth2Authentication.LOGOUT_VIEW
+                    OAuth2Authentication.LOGOUT_VIEW
             return login_user(user), None
         return False, msg
 

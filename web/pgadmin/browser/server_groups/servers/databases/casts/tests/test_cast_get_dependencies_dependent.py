@@ -42,16 +42,16 @@ class CastsGetDependentsAndDependencyTestCase(BaseTestGenerator):
                                                  utils.SERVER_GROUP,
                                                  self.server_id,
                                                  self.db_id)
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
 
         if self.is_positive_test:
             if self.is_dependant:
                 response = cast_utils.api_get_cast_node_dependent(self)
-                cast_utils.assert_status_code(self, response)
             else:
                 response = cast_utils.api_get_cast_node_dependencies(self)
-                cast_utils.assert_status_code(self, response)
+
+            cast_utils.assert_status_code(self, response)
 
     # TODO
     # Check weather to add -ve tests or not

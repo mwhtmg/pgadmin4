@@ -26,17 +26,15 @@ def check_validation_view_content(test):
     def mock_log_exception(ex):
         test.assertTrue(type(ex) == ValidationException)
 
-    with patch(
-        __MFA_PACKAGE + ".utils.current_user", return_value=MockCurrentUserId()
-    ):
-        with patch(__MFA_PACKAGE + ".utils.UserMFA") as mock_user_mfa:
+    with patch(f"{__MFA_PACKAGE}.utils.current_user", return_value=MockCurrentUserId()):
+        with patch(f"{__MFA_PACKAGE}.utils.UserMFA") as mock_user_mfa:
             with test.app.test_request_context():
                 with patch("flask.current_app") as mock_current_app:
                     mock_user_mfa.query.filter_by.return_value \
                         .all.return_value = user_mfa_test_data
                     mock_current_app.logger.exception = mock_log_exception
 
-                    with patch(__AUTH_PACKAGE + ".session") as mock_session:
+                    with patch(f"{__AUTH_PACKAGE}.session") as mock_session:
                         session = {
                             'auth_source_manager': {
                                 'current_source': getattr(

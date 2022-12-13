@@ -34,38 +34,41 @@ def parse_priv_from_db(db_privileges):
     if 'acltype' in db_privileges:
         acl['acltype'] = db_privileges['acltype']
 
-    privileges = []
-    for idx, priv in enumerate(db_privileges['privileges']):
-        privileges.append({
+    privileges = [
+        {
             "privilege_type": priv,
             "privilege": True,
-            "with_grant": db_privileges['grantable'][idx]
-        })
-
+            "with_grant": db_privileges['grantable'][idx],
+        }
+        for idx, priv in enumerate(db_privileges['privileges'])
+    ]
     acl['privileges'] = privileges
 
     return acl
 
 
 def _check_privilege_type(priv):
-    if isinstance(priv['privileges'], dict) \
-            and 'changed' in priv['privileges']:
-        tmp = []
-        for p in priv['privileges']['changed']:
-            tmp_p = {'privilege_type': p['privilege_type'],
-                     'privilege': False,
-                     'with_grant': False}
+    if (
+        not isinstance(priv['privileges'], dict)
+        or 'changed' not in priv['privileges']
+    ):
+        return
+    tmp = []
+    for p in priv['privileges']['changed']:
+        tmp_p = {'privilege_type': p['privilege_type'],
+                 'privilege': False,
+                 'with_grant': False}
 
-            if 'with_grant' in p:
-                tmp_p['privilege'] = True
-                tmp_p['with_grant'] = p['with_grant']
+        if 'with_grant' in p:
+            tmp_p['privilege'] = True
+            tmp_p['with_grant'] = p['with_grant']
 
-            if 'privilege' in p:
-                tmp_p['privilege'] = p['privilege']
+        if 'privilege' in p:
+            tmp_p['privilege'] = p['privilege']
 
-            tmp.append(tmp_p)
+        tmp.append(tmp_p)
 
-        priv['privileges'] = tmp
+    priv['privileges'] = tmp
 
 
 def _parse_privileges(priv, db_privileges, allowed_acls, priv_with_grant,
@@ -188,8 +191,6 @@ def validate_options(options, option_name, option_value):
         Flag, Filtered options
     """
     valid_options = []
-    is_valid_options = False
-
     for option in options:
         # If option name is valid
         if option_name in option and \
@@ -197,20 +198,17 @@ def validate_options(options, option_name, option_value):
                 option[option_name] != '' and \
                 len(option[option_name].strip()) > 0:
             # If option value is valid
-            if option_value in option and \
-                option[option_value] is not None and \
-                option[option_value] != '' and \
-                    len(option[option_value].strip()) > 0:
-                # Do nothing here
-                pass
-            else:
+            if (
+                option_value not in option
+                or option[option_value] is None
+                or option[option_value] == ''
+                or len(option[option_value].strip()) <= 0
+            ):
                 # Set empty string if no value provided
                 option[option_value] = ''
             valid_options.append(option)
 
-    if len(valid_options) > 0:
-        is_valid_options = True
-
+    is_valid_options = bool(valid_options)
     return is_valid_options, valid_options
 
 
@@ -288,7 +286,6 @@ def does_server_exists(sid, user_id):
     # **kwargs parameter can be added to function to filter with more
     # parameters.
     try:
-        return True if Server.query.filter_by(
-            id=sid).first() is not None else False
+        return Server.query.filter_by(id=sid).first() is not None
     except Exception:
         return False

@@ -38,16 +38,13 @@ def get_logout_url() -> str:
         str: logout url
     """
     BROWSER_INDEX = 'browser.index'
-    if config.SERVER_MODE and\
-            session['auth_source_manager']['current_source'] == \
-            KERBEROS:
-        return _URL_WITH_NEXT_PARAM.format(url_for(
-            'kerberos.logout'), url_for(BROWSER_INDEX))
-    elif config.SERVER_MODE and\
-            session['auth_source_manager']['current_source'] == \
-            OAUTH2:
-        return _URL_WITH_NEXT_PARAM.format(url_for(
-            'oauth2.logout'), url_for(BROWSER_INDEX))
+    if config.SERVER_MODE:
+        if session['auth_source_manager']['current_source'] == KERBEROS:
+            return _URL_WITH_NEXT_PARAM.format(url_for(
+                'kerberos.logout'), url_for(BROWSER_INDEX))
+        elif session['auth_source_manager']['current_source'] == OAUTH2:
+            return _URL_WITH_NEXT_PARAM.format(url_for(
+                'oauth2.logout'), url_for(BROWSER_INDEX))
 
     return _URL_WITH_NEXT_PARAM.format(
         url_for('security.logout'), url_for(BROWSER_INDEX))
@@ -82,10 +79,7 @@ def login():
                                 auth_source=INTERNAL).first()
 
     if user:
-        if user.login_attempts >= config.MAX_LOGIN_ATTEMPTS > 0:
-            user.locked = True
-        else:
-            user.locked = False
+        user.locked = user.login_attempts >= config.MAX_LOGIN_ATTEMPTS > 0
         db.session.commit()
 
         if user.login_attempts >= config.MAX_LOGIN_ATTEMPTS > 0:
@@ -154,8 +148,7 @@ def login():
     if 'auth_obj' in session:
         session.pop('auth_obj')
     flash(msg, 'danger')
-    response = redirect(get_post_logout_redirect())
-    return response
+    return redirect(get_post_logout_redirect())
 
 
 class AuthSourceManager:
@@ -175,12 +168,11 @@ class AuthSourceManager:
         Returns the dictionary object representing this object.
         """
 
-        res = dict()
-        res['source_friendly_name'] = self.source_friendly_name
-        res['auth_sources'] = self.auth_sources
-        res['current_source'] = self.current_source
-
-        return res
+        return {
+            'source_friendly_name': self.source_friendly_name,
+            'auth_sources': self.auth_sources,
+            'current_source': self.current_source,
+        }
 
     def update_auth_sources(self):
         for auth_src in [KERBEROS, OAUTH2]:
@@ -234,8 +226,8 @@ class AuthSourceManager:
             source = get_auth_sources(src)
             self.set_source(source)
             current_app.logger.debug(
-                "Authentication initiated via source: %s" %
-                source.get_source_name())
+                f"Authentication initiated via source: {source.get_source_name()}"
+            )
 
             status, msg = source.authenticate(self.form)
 
@@ -252,8 +244,8 @@ class AuthSourceManager:
         if status:
             self.set_source_friendly_name(self.source.get_friendly_name())
             current_app.logger.debug(
-                "Authentication and Login successfully done via source : %s" %
-                self.source.get_source_name())
+                f"Authentication and Login successfully done via source : {self.source.get_source_name()}"
+            )
 
             # Set the login, logout view as per source  if available
             current_app.login_manager.login_view = getattr(
@@ -270,7 +262,7 @@ def get_auth_sources(type):
     auth_sources = getattr(current_app, '_pgadmin_auth_sources', None)
 
     if auth_sources is None or not isinstance(auth_sources, dict):
-        auth_sources = dict()
+        auth_sources = {}
 
     if type in auth_sources:
         return auth_sources[type]
@@ -285,7 +277,7 @@ def get_auth_sources(type):
 
 
 def init_app(app):
-    auth_sources = dict()
+    auth_sources = {}
 
     setattr(app, '_pgadmin_auth_sources', auth_sources)
     AuthSourceRegistry.load_modules(app)

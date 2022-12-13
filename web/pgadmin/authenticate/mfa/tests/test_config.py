@@ -75,39 +75,45 @@ config_scenarios = [
     (
         "Check MFA enabled with no authenticators?",
         dict(
-            check=check_mfa_enabled, enabled=True, supported_list=list(),
+            check=check_mfa_enabled,
+            enabled=True,
+            supported_list=[],
             expected=__MFA_DISABLED,
             fail_msg="MFA is enabled with no authenticators, but - "
-            "'execute_if_disabled' function is not called."
+            "'execute_if_disabled' function is not called.",
         ),
     ),
     (
         "Check MFA enabled?",
         dict(
-            check=check_mfa_enabled, enabled=True,
-            supported_list=[TEST_UTILS_AUTH_PKG], expected=__MFA_ENABLED,
+            check=check_mfa_enabled,
+            enabled=True,
+            supported_list=[TEST_UTILS_AUTH_PKG],
+            expected=__MFA_ENABLED,
             fail_msg="MFA is enable, but - 'execute_if_enabled' function "
-            "is not called."
+            "is not called.",
         ),
     ),
     (
         "Check MFA disabled check functionality works?",
         dict(
-            check=check_mfa_enabled, enabled=False,
-            supported_list=list(),
+            check=check_mfa_enabled,
+            enabled=False,
+            supported_list=[],
             expected=__MFA_DISABLED,
             fail_msg="MFA is disabled, but - 'execute_if_enabled' function "
-            "is called."
+            "is called.",
         ),
     ),
     (
         "Check MFA in the supported MFA LIST is part of the registered one",
         dict(
-            check=check_mfa_enabled, enabled=True,
+            check=check_mfa_enabled,
+            enabled=True,
             supported_list=["not-in-list"],
             expected=__MFA_DISABLED,
             fail_msg="MFA is enabled with invalid authenticators, but - "
-            "'execute_if_enabled' function is called"
+            "'execute_if_enabled' function is called",
         ),
     ),
     (
@@ -117,17 +123,19 @@ config_scenarios = [
             check=log_message_in_init_app,
             supported_list=["xyz", TEST_UTILS_AUTH_PKG],
             name="warning_app_having_invalid_method",
-            warning_invalid_auth_found=True, warning_disable_auth=False,
+            warning_invalid_auth_found=True,
+            warning_disable_auth=False,
             fail_msg="Warning for invalid auth is not found",
         ),
     ),
     (
-        "Check warning message with invalid method during "
-        "init_app(...) ",
+        "Check warning message with invalid method during " "init_app(...) ",
         dict(
-            check=log_message_in_init_app, supported_list=["xyz"],
+            check=log_message_in_init_app,
+            supported_list=["xyz"],
             name="warning_app_with_invalid_method",
-            warning_invalid_auth_found=False, warning_disable_auth=True,
+            warning_invalid_auth_found=False,
+            warning_disable_auth=True,
             fail_msg="Warning for invalid auth is not found",
         ),
     ),
@@ -135,9 +143,11 @@ config_scenarios = [
         "Check warning message when empty supported mfa list during "
         "init_app(...)",
         dict(
-            check=log_message_in_init_app, supported_list=[""],
+            check=log_message_in_init_app,
+            supported_list=[""],
             name="warning_app_with_empty_supported_list",
-            warning_invalid_auth_found=False, warning_disable_auth=True,
+            warning_invalid_auth_found=False,
+            warning_disable_auth=True,
             fail_msg="Warning not found with empty supported mfa methods",
         ),
     ),
@@ -145,9 +155,11 @@ config_scenarios = [
         "No warning message should found with valid configurations during "
         "init_app(...)",
         dict(
-            check=log_message_in_init_app, name="no_warning_app",
+            check=log_message_in_init_app,
+            name="no_warning_app",
             supported_list=[TEST_UTILS_AUTH_PKG],
-            warning_invalid_auth_found=False, warning_disable_auth=False,
+            warning_invalid_auth_found=False,
+            warning_disable_auth=False,
             fail_msg="Warning found with valid configure",
         ),
     ),

@@ -45,7 +45,7 @@ class FtsDictionaryAddTestCase(BaseTestGenerator):
                                                  self.server_id,
                                                  self.db_id)
 
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
 
         schema_response = schema_utils.verify_schemas(self.server,
@@ -53,9 +53,9 @@ class FtsDictionaryAddTestCase(BaseTestGenerator):
                                                       self.schema_name)
         if not schema_response:
             raise Exception("Could not find the schema.")
-        self.fts_dict_name = "fts_dict_%s" % str(uuid.uuid4())[1:8]
+        self.fts_dict_name = f"fts_dict_{str(uuid.uuid4())[1:8]}"
         data = \
-            {
+                {
                 "name": self.fts_dict_name,
                 "options": [
                     {

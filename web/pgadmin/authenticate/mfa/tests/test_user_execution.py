@@ -33,10 +33,8 @@ def check_user_registered(test):
         MockUserMFA(1, "no-present-in-list", None),
     ]
 
-    with patch(
-        __MFA_PACKAGE + ".utils.current_user", return_value=MockCurrentUserId()
-    ):
-        with patch(__MFA_PACKAGE + ".utils.UserMFA") as mock_user_mfa:
+    with patch(f"{__MFA_PACKAGE}.utils.current_user", return_value=MockCurrentUserId()):
+        with patch(f"{__MFA_PACKAGE}.utils.UserMFA") as mock_user_mfa:
             mock_user_mfa.query.filter_by.return_value.all.return_value = \
                 user_mfa_test_data
 
@@ -56,11 +54,7 @@ def check_user_registered(test):
 
             methods = user_supported_mfa_methods()
             if "dummy" not in methods:
-                test.fail(
-                    "User registration methods are not valid: {}".format(
-                        methods
-                    )
-                )
+                test.fail(f"User registration methods are not valid: {methods}")
 
             # Removed the 'dummy' from the user's registered MFA list
             user_mfa_test_data.pop(0)

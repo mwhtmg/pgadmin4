@@ -56,7 +56,7 @@ def __handle_mfa_validation_request(
     if mfa_method is None:
         raise ValidationException(_("No authentication method provided."))
 
-    mfa_auth = user_mfa_auths.get(mfa_method, None)
+    mfa_auth = user_mfa_auths.get(mfa_method)
 
     if mfa_auth is None:
         raise ValidationException(_(
@@ -114,10 +114,9 @@ def validate_view() -> Response:
             return redirect(next_url)
 
         except ValidationException as ve:
-            current_app.logger.warning((
-                "MFA validation failed for the user '{}' with an error: "
-                "{}"
-            ).format(current_user.username, str(ve)))
+            current_app.logger.warning(
+                f"MFA validation failed for the user '{current_user.username}' with an error: {str(ve)}"
+            )
             flash(str(ve), "danger")
             return_code = 401
         except Exception as ex:
@@ -130,7 +129,7 @@ def validate_view() -> Response:
         for key in user_mfa_auths
     }
 
-    if mfa_method is None and len(mfa_views) > 0:
+    if mfa_method is None and mfa_views:
         list(mfa_views.items())[0][1]['selected'] = True
 
     return Response(render_template(
@@ -207,13 +206,14 @@ def _registration_view_or_deregister(
                                 '_mfa_registration_view(...)' method call.
     """
 
-    for key in _auth_list:
-        if key in request.form:
-            return _mfa_registration_view(
-                _auth_list[key], request.form
-            )
-
-    return False
+    return next(
+        (
+            _mfa_registration_view(value, request.form)
+            for key, value in _auth_list.items()
+            if key in request.form
+        ),
+        False,
+    )
 
 
 def __handle_registration_view_for_post_method(
@@ -258,15 +258,22 @@ def __handle_registration_view_for_post_method(
             flash(_("Please close the dialog."), "info")
 
         if view is not None:
-            return None, Response(
-                render_template(
-                    "mfa/register.html", _=_,
-                    mfa_list=list(), mfa_view=view,
-                    next_url=next_url,
-                    error_message=None
-                ), 200,
-                headers=_NO_CACHE_HEADERS
-            ), None
+            return (
+                None,
+                Response(
+                    render_template(
+                        "mfa/register.html",
+                        _=_,
+                        mfa_list=[],
+                        mfa_view=view,
+                        next_url=next_url,
+                        error_message=None,
+                    ),
+                    200,
+                    headers=_NO_CACHE_HEADERS,
+                ),
+                None,
+            )
 
         # Regenerate the supported MFA list after
         # registration/deregistration.
@@ -304,7 +311,7 @@ def registration_view() -> Response:
                   view, or redirect to 'next' url
     """
     mfa_auths = mfa_suppored_methods()
-    mfa_list = list()
+    mfa_list = []
 
     next_url = request.args.get("next", None)
 

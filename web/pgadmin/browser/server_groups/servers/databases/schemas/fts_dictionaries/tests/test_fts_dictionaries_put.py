@@ -38,7 +38,7 @@ class FtsDictionaryPutTestCase(BaseTestGenerator):
         self.server_id = self.schema_data['server_id']
         self.db_id = self.schema_data['db_id']
         self.db_name = parent_node_dict["database"][-1]["db_name"]
-        self.fts_dict_name = "fts_dict_%s" % str(uuid.uuid4())[1:8]
+        self.fts_dict_name = f"fts_dict_{str(uuid.uuid4())[1:8]}"
 
         self.fts_dict_id = fts_dict_utils.create_fts_dictionary(
             self.server,
@@ -55,7 +55,7 @@ class FtsDictionaryPutTestCase(BaseTestGenerator):
                                                  self.server_id,
                                                  self.db_id)
 
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
 
         schema_response = schema_utils.verify_schemas(self.server,
@@ -72,7 +72,7 @@ class FtsDictionaryPutTestCase(BaseTestGenerator):
             raise Exception("Could not find the FTS dictionary.")
 
         data = \
-            {
+                {
                 "description": "This is FTS dictionary update comment",
                 "id": self.fts_dict_id
 
