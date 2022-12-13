@@ -32,9 +32,9 @@ def print_title(title):
 
 
 def print_row(name, version, licence, url):
-    print("{} {} {} {}".format(name.ljust(name_size),
-                               version.ljust(version_size),
-                               licence.ljust(licence_size), url))
+    print(
+        f"{name.ljust(name_size)} {version.ljust(version_size)} {licence.ljust(licence_size)} {url}"
+    )
 
 
 def print_table_header():
@@ -43,13 +43,14 @@ def print_table_header():
 
 
 def print_summary(count):
-    print("\n{} dependencies listed.\n".format(count))
+    print(f"\n{count} dependencies listed.\n")
 
 
 def get_python_deps():
     # Get the path to the requirements.txt file
-    req_file = os.path.realpath(os.path.dirname(os.path.abspath(__file__)) +
-                                "/../requirements.txt")
+    req_file = os.path.realpath(
+        f"{os.path.dirname(os.path.abspath(__file__))}/../requirements.txt"
+    )
 
     with open(req_file, 'r') as req_file_p:
         required = req_file_p.read().splitlines()
@@ -57,9 +58,9 @@ def get_python_deps():
     # Get the package info from the requirements file
     requirements = pkg_resources.parse_requirements(required)
 
-    have_unknowns = False
     count = 0
 
+    have_unknowns = False
     # Iterate the packages and get the distribution info for each
     for pkg in requirements:
 
@@ -71,13 +72,7 @@ def get_python_deps():
             have_unknowns = True
 
             name = pkg.name
-            version = "Unknown"
-
-            for spec in pkg.specs:
-                if spec[0] == "==":
-                    version = spec[1]
-                    break
-
+            version = next((spec[1] for spec in pkg.specs if spec[0] == "=="), "Unknown")
             licence = "Unknown"
             url = "Unknown"
             if pkg.url is not None:
@@ -126,24 +121,27 @@ def get_python_deps():
         minor = sys.version_info.minor
 
         print("")
-        print(textwrap.fill("NOTE: This report was generated using "
-                            "Python {}.{}. Full information may not be shown "
-                            "for Python modules that are not required with "
-                            "this version.".format(
-                                major, minor), width=79))
+        print(
+            textwrap.fill(
+                f"NOTE: This report was generated using Python {major}.{minor}. Full information may not be shown for Python modules that are not required with this version.",
+                width=79,
+            )
+        )
 
     print_summary(count)
 
 
 def get_js_deps(is_runtime=False, hardcoded_deps=0):
     # Get the path to package.json file
-    if is_runtime:
-        web_dir = os.path.realpath(os.path.dirname(
-            os.path.abspath(__file__)) + "/../runtime/")
-    else:
-        web_dir = os.path.realpath(os.path.dirname(
-            os.path.abspath(__file__)) + "/../web/")
-
+    web_dir = (
+        os.path.realpath(
+            f"{os.path.dirname(os.path.abspath(__file__))}/../runtime/"
+        )
+        if is_runtime
+        else os.path.realpath(
+            f"{os.path.dirname(os.path.abspath(__file__))}/../web/"
+        )
+    )
     # Build the Yarn command
     cmd = ["yarn", "--cwd", web_dir, "licenses", "list", "--json",
            "--production=true"]
@@ -163,8 +161,6 @@ def get_js_deps(is_runtime=False, hardcoded_deps=0):
 
     # Loop through the modules, and output the data.
     for module in modules:
-        name = module[0]
-
         version = "Unknown"
         if module[1] != "":
             version = module[1]
@@ -176,11 +172,13 @@ def get_js_deps(is_runtime=False, hardcoded_deps=0):
         if module[3] != "":
             url = module[3]
 
+            name = module[0]
+
             print_row(name, version, licence, url)
 
     deps = len(modules)
     if hardcoded_deps > 0:
-        deps = deps + hardcoded_deps
+        deps += hardcoded_deps
 
     print_summary(deps)
 

@@ -280,7 +280,6 @@ class ForeignDataWrapperView(PGChildNodeView, SchemaDiffObjectCompare):
             sid: Server ID
             did: Database ID
         """
-        res = []
         sql = render_template("/".join([self.template_path,
                                         self._PROPERTIES_SQL]),
                               conn=self.conn
@@ -289,15 +288,12 @@ class ForeignDataWrapperView(PGChildNodeView, SchemaDiffObjectCompare):
         if not status:
             return internal_server_error(errormsg=r_set)
 
-        for row in r_set['rows']:
-            res.append(
-                self.blueprint.generate_browser_node(
-                    row['oid'],
-                    did,
-                    row['name'],
-                    icon="icon-foreign_data_wrapper"
-                ))
-
+        res = [
+            self.blueprint.generate_browser_node(
+                row['oid'], did, row['name'], icon="icon-foreign_data_wrapper"
+            )
+            for row in r_set['rows']
+        ]
         return make_json_response(
             data=res,
             status=200
@@ -348,13 +344,7 @@ class ForeignDataWrapperView(PGChildNodeView, SchemaDiffObjectCompare):
             fid: foreign data wrapper ID
         """
         status, res = self._fetch_properties(fid)
-        if not status:
-            return res
-
-        return ajax_response(
-            response=res,
-            status=200
-        )
+        return ajax_response(response=res, status=200) if status else res
 
     def _fetch_properties(self, fid):
         """
@@ -419,9 +409,7 @@ class ForeignDataWrapperView(PGChildNodeView, SchemaDiffObjectCompare):
             'name'
         ]
 
-        data = request.form if request.form else json.loads(
-            request.data, encoding='utf-8'
-        )
+        data = request.form or json.loads(request.data, encoding='utf-8')
         for arg in required_args:
             if arg not in data:
                 return make_json_response(
@@ -487,9 +475,7 @@ class ForeignDataWrapperView(PGChildNodeView, SchemaDiffObjectCompare):
             did: Database ID
             fid: foreign data wrapper ID
         """
-        data = request.form if request.form else json.loads(
-            request.data, encoding='utf-8'
-        )
+        data = request.form or json.loads(request.data, encoding='utf-8')
 
         try:
             sql, name = self.get_sql(gid, sid, data, did, fid)
@@ -497,16 +483,14 @@ class ForeignDataWrapperView(PGChildNodeView, SchemaDiffObjectCompare):
             if not isinstance(sql, str):
                 return sql
             status, res = self.conn.execute_scalar(sql)
-            if not status:
-                return internal_server_error(errormsg=res)
-
-            return jsonify(
-                node=self.blueprint.generate_browser_node(
-                    fid,
-                    did,
-                    name,
-                    icon="icon-%s" % self.node_type
+            return (
+                jsonify(
+                    node=self.blueprint.generate_browser_node(
+                        fid, did, name, icon=f"icon-{self.node_type}"
+                    )
                 )
+                if status
+                else internal_server_error(errormsg=res)
             )
         except Exception as e:
             return internal_server_error(errormsg=str(e))
@@ -520,15 +504,9 @@ class ForeignDataWrapperView(PGChildNodeView, SchemaDiffObjectCompare):
         :param request_object: request object
         :return:
         """
-        cascade = False
-        # Below will decide if it's simple drop or drop with cascade call
-        if cmd == 'delete':
-            # This is a cascade operation
-            cascade = True
-
+        cascade = cmd == 'delete'
         if fid is None:
-            data = request_object.form if request_object.form else \
-                json.loads(request_object.data, encoding='utf-8')
+            data = request_object.form or json.loads(request_object.data, encoding='utf-8')
         else:
             data = {'ids': [fid]}
 
@@ -612,10 +590,7 @@ class ForeignDataWrapperView(PGChildNodeView, SchemaDiffObjectCompare):
             try:
                 # comments should be taken as is because if user enters a
                 # json comment it is parsed by loads which should not happen
-                if k in ('description',):
-                    data[k] = v
-                else:
-                    data[k] = json.loads(v, encoding='utf-8')
+                data[k] = v if k in ('description',) else json.loads(v, encoding='utf-8')
             except ValueError:
                 data[k] = v
         try:
@@ -651,12 +626,12 @@ class ForeignDataWrapperView(PGChildNodeView, SchemaDiffObjectCompare):
                 data['fdwoptions'], 'fdwoption', 'fdwvalue'
             )
 
-        sql = render_template("/".join([self.template_path,
-                                        self._CREATE_SQL]),
-                              data=data, conn=self.conn,
-                              is_valid_options=is_valid_options
-                              )
-        return sql
+        return render_template(
+            "/".join([self.template_path, self._CREATE_SQL]),
+            data=data,
+            conn=self.conn,
+            is_valid_options=is_valid_options,
+        )
 
     def _check_and_parse_priv_to_db(self, data):
         """
@@ -720,10 +695,6 @@ class ForeignDataWrapperView(PGChildNodeView, SchemaDiffObjectCompare):
                   foreign data wrapper node
             fid: foreign data wrapper ID
         """
-        required_args = [
-            'name'
-        ]
-
         if fid is not None:
             sql = render_template("/".join([self.template_path,
                                             self._PROPERTIES_SQL]),
@@ -749,6 +720,10 @@ class ForeignDataWrapperView(PGChildNodeView, SchemaDiffObjectCompare):
             self._check_and_parse_priv_to_db(data)
 
             old_data = res['rows'][0]
+            required_args = [
+                'name'
+            ]
+
             for arg in required_args:
                 if arg not in data:
                     data[arg] = old_data[arg]
@@ -756,7 +731,7 @@ class ForeignDataWrapperView(PGChildNodeView, SchemaDiffObjectCompare):
             # Allow user to set the blank value in fdwvalue
             # field in option model
             is_valid_added_options, \
-                is_valid_changed_options = self._check_validate_options(data)
+                    is_valid_changed_options = self._check_validate_options(data)
 
             sql = render_template(
                 "/".join([self.template_path, self._UPDATE_SQL]),
@@ -767,7 +742,7 @@ class ForeignDataWrapperView(PGChildNodeView, SchemaDiffObjectCompare):
                 conn=self.conn
             )
             return sql.strip('\n'), \
-                data['name'] if 'name' in data else old_data['name']
+                    data['name'] if 'name' in data else old_data['name']
         else:
             sql = self._get_create_sql(data)
 
@@ -846,10 +821,11 @@ class ForeignDataWrapperView(PGChildNodeView, SchemaDiffObjectCompare):
 
         sql = sql_header + sql
 
-        if not json_resp:
-            return sql.strip('\n')
-
-        return ajax_response(response=sql.strip('\n'))
+        return (
+            ajax_response(response=sql.strip('\n'))
+            if json_resp
+            else sql.strip('\n')
+        )
 
     @check_precondition
     def get_validators(self, gid, sid, did):
@@ -872,10 +848,13 @@ class ForeignDataWrapperView(PGChildNodeView, SchemaDiffObjectCompare):
             if not status:
                 return internal_server_error(errormsg=r_set)
 
-            for row in r_set['rows']:
-                res.append({'label': row['schema_prefix_fdw_val'],
-                            'value': row['schema_prefix_fdw_val']})
-
+            res.extend(
+                {
+                    'label': row['schema_prefix_fdw_val'],
+                    'value': row['schema_prefix_fdw_val'],
+                }
+                for row in r_set['rows']
+            )
             return make_json_response(data=res, status=200)
 
         except Exception as e:
@@ -902,10 +881,13 @@ class ForeignDataWrapperView(PGChildNodeView, SchemaDiffObjectCompare):
             if not status:
                 return internal_server_error(errormsg=r_set)
 
-            for row in r_set['rows']:
-                res.append({'label': row['schema_prefix_fdw_hand'],
-                            'value': row['schema_prefix_fdw_hand']})
-
+            res.extend(
+                {
+                    'label': row['schema_prefix_fdw_hand'],
+                    'value': row['schema_prefix_fdw_hand'],
+                }
+                for row in r_set['rows']
+            )
             return make_json_response(
                 data=res,
                 status=200
@@ -960,7 +942,7 @@ class ForeignDataWrapperView(PGChildNodeView, SchemaDiffObjectCompare):
         :param did: Database Id
         :return:
         """
-        res = dict()
+        res = {}
 
         sql = render_template("/".join([self.template_path,
                                         self._PROPERTIES_SQL]),
@@ -990,19 +972,18 @@ class ForeignDataWrapperView(PGChildNodeView, SchemaDiffObjectCompare):
         sid = kwargs.get('sid')
         did = kwargs.get('did')
         oid = kwargs.get('oid')
-        data = kwargs.get('data', None)
+        data = kwargs.get('data')
         drop_sql = kwargs.get('drop_sql', False)
 
         if data:
             sql, name = self.get_sql(gid=gid, sid=sid, did=did, data=data,
                                      fid=oid)
+        elif drop_sql:
+            sql = self.delete(gid=gid, sid=sid, did=did,
+                              fid=oid, only_sql=True)
         else:
-            if drop_sql:
-                sql = self.delete(gid=gid, sid=sid, did=did,
-                                  fid=oid, only_sql=True)
-            else:
-                sql = self.sql(gid=gid, sid=sid, did=did, fid=oid,
-                               json_resp=False)
+            sql = self.sql(gid=gid, sid=sid, did=did, fid=oid,
+                           json_resp=False)
         return sql
 
 

@@ -233,8 +233,7 @@ class DomainConstraintView(PGChildNodeView):
             try:
                 for key in req:
                     if key == 'convalidated':
-                        data[key] = True if (req[key] == 'true' or req[key] is
-                                             True) else False
+                        data[key] = req[key] == 'true' or req[key] is True
                     else:
                         data[key] = req[key]
 
@@ -299,11 +298,10 @@ class DomainConstraintView(PGChildNodeView):
                               doid=doid)
         status, res = self.conn.execute_dict(SQL)
 
-        if not status:
-            return internal_server_error(errormsg=res)
-        return ajax_response(
-            response=res['rows'],
-            status=200
+        return (
+            ajax_response(response=res['rows'], status=200)
+            if status
+            else internal_server_error(errormsg=res)
         )
 
     @check_precondition
@@ -328,9 +326,7 @@ class DomainConstraintView(PGChildNodeView):
             return internal_server_error(errormsg=rset)
 
         for row in rset['rows']:
-            if 'convalidated' not in row:
-                icon = 'icon-domain_constraints'
-            elif row['convalidated']:
+            if 'convalidated' not in row or row['convalidated']:
                 icon = 'icon-domain_constraints'
             else:
                 icon = 'icon-domain_constraints-bad'
@@ -369,9 +365,7 @@ class DomainConstraintView(PGChildNodeView):
             return internal_server_error(errormsg=rset)
 
         for row in rset['rows']:
-            if 'convalidated' not in row:
-                icon = 'icon-domain_constraints'
-            elif row['convalidated']:
+            if 'convalidated' not in row or row['convalidated']:
                 icon = 'icon-domain_constraints'
             else:
                 icon = 'icon-domain_constraints-bad'
@@ -454,9 +448,7 @@ class DomainConstraintView(PGChildNodeView):
             if not status:
                 return internal_server_error(errormsg=coid)
 
-            if 'convalidated' not in data:
-                icon = 'icon-domain_constraints'
-            elif 'convalidated' in data and data['convalidated']:
+            if 'convalidated' not in data or data['convalidated']:
                 icon = 'icon-domain_constraints'
             else:
                 icon = 'icon-domain_constraints-bad'
@@ -488,9 +480,7 @@ class DomainConstraintView(PGChildNodeView):
             coid: Domain Constraint Id
         """
         if coid is None:
-            data = request.form if request.form else json.loads(
-                request.data, encoding='utf-8'
-            )
+            data = request.form or json.loads(request.data, encoding='utf-8')
         else:
             data = {'ids': [coid]}
 
@@ -551,27 +541,7 @@ class DomainConstraintView(PGChildNodeView):
             return SQL
 
         try:
-            if SQL and status:
-                status, res = self.conn.execute_scalar(SQL)
-                if not status:
-                    return internal_server_error(errormsg=res)
-
-                if 'convalidated' in data and data['convalidated']:
-                    icon = 'icon-domain_constraints'
-                elif 'convalidated' in data and not data['convalidated']:
-                    icon = 'icon-domain_constraints-bad'
-                else:
-                    icon = ''
-
-                return jsonify(
-                    node=self.blueprint.generate_browser_node(
-                        coid,
-                        doid,
-                        name,
-                        icon=icon
-                    )
-                )
-            else:
+            if not SQL or not status:
                 return make_json_response(
                     success=1,
                     info="Nothing to update",
@@ -585,6 +555,25 @@ class DomainConstraintView(PGChildNodeView):
                     }
                 )
 
+            status, res = self.conn.execute_scalar(SQL)
+            if not status:
+                return internal_server_error(errormsg=res)
+
+            if 'convalidated' in data and data['convalidated']:
+                icon = 'icon-domain_constraints'
+            elif 'convalidated' in data:
+                icon = 'icon-domain_constraints-bad'
+            else:
+                icon = ''
+
+            return jsonify(
+                node=self.blueprint.generate_browser_node(
+                    coid,
+                    doid,
+                    name,
+                    icon=icon
+                )
+            )
         except Exception as e:
             return internal_server_error(errormsg=str(e))
 
@@ -651,13 +640,7 @@ class DomainConstraintView(PGChildNodeView):
         data = self.request
 
         status, SQL, name = self.get_sql(gid, sid, data, scid, doid, coid)
-        if status and SQL:
-            return make_json_response(
-                data=SQL,
-                status=200
-            )
-        else:
-            return SQL
+        return make_json_response(data=SQL, status=200) if status and SQL else SQL
 
     def get_sql(self, gid, sid, data, scid, doid, coid=None):
         """

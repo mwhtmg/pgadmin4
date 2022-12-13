@@ -10,17 +10,14 @@
 """Perform the initial setup of the application, by creating the auth
 and settings database."""
 
+
 import argparse
 import os
 import sys
 import builtins
 
 # Grab the SERVER_MODE if it's been set by the runtime
-if 'SERVER_MODE' in globals():
-    builtins.SERVER_MODE = globals()['SERVER_MODE']
-else:
-    builtins.SERVER_MODE = None
-
+builtins.SERVER_MODE = globals().get('SERVER_MODE')
 # We need to include the root directory in sys.path to ensure that we can
 # find everything we need when running in the standalone runtime.
 root = os.path.dirname(os.path.realpath(__file__))
@@ -41,11 +38,7 @@ def dump_servers(args):
     """
 
     # What user?
-    if args.user is not None:
-        dump_user = args.user
-    else:
-        dump_user = config.DESKTOP_USER
-
+    dump_user = args.user if args.user is not None else config.DESKTOP_USER
     # And the sqlite path
     if args.sqlite_path is not None:
         config.SQLITE_PATH = args.sqlite_path
@@ -56,7 +49,7 @@ def dump_servers(args):
     print('SQLite pgAdmin config:', config.SQLITE_PATH)
     print('----------')
 
-    app = create_app(config.APP_NAME + '-cli')
+    app = create_app(f'{config.APP_NAME}-cli')
     with app.app_context():
         dump_database_servers(args.dump_servers, args.servers, dump_user, True)
 
@@ -81,7 +74,7 @@ def load_servers(args):
     print('SQLite pgAdmin config:', config.SQLITE_PATH)
     print('----------')
 
-    app = create_app(config.APP_NAME + '-cli')
+    app = create_app(f'{config.APP_NAME}-cli')
     with app.app_context():
         load_database_servers(args.load_servers, None, load_user, True)
 
@@ -134,7 +127,7 @@ def clear_servers():
     if args.sqlite_path is not None:
         config.SQLITE_PATH = args.sqlite_path
 
-    app = create_app(config.APP_NAME + '-cli')
+    app = create_app(f'{config.APP_NAME}-cli')
     with app.app_context():
         clear_database_servers(load_user, True)
 
@@ -184,13 +177,13 @@ if __name__ == '__main__':
         try:
             dump_servers(args)
         except Exception as e:
-            print(str(e))
+            print(e)
     elif args.load_servers is not None:
         try:
             if args.replace:
                 clear_servers()
             load_servers(args)
         except Exception as e:
-            print(str(e))
+            print(e)
     else:
         setup_db()

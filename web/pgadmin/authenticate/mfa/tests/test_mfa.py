@@ -14,7 +14,7 @@ from .test_mfa_view import validation_view_scenarios
 from .utils import init_dummy_auth_class
 
 
-test_scenarios = list()
+test_scenarios = []
 test_scenarios += config_scenarios
 test_scenarios += user_execution_scenarios
 test_scenarios += validation_view_scenarios

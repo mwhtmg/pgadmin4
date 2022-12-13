@@ -12,7 +12,7 @@ import os
 import json
 
 CURRENT_PATH = os.path.dirname(os.path.realpath(__file__))
-with open(CURRENT_PATH + "/cast_test_data.json") as data_file:
+with open(f"{CURRENT_PATH}/cast_test_data.json") as data_file:
     test_cases = json.load(data_file)
 
 
@@ -43,11 +43,10 @@ def api_get_cast_node(self, cast_id):
 
 def api_create_cast_get_functions(self):
     return self.tester.post(
-        self.url + 'get_functions/' + str(SERVER_GROUP) + '/' +
-        str(self.server_id) + '/' + str(
-            self.db_id) + '/',
+        f'{self.url}get_functions/{str(SERVER_GROUP)}/{str(self.server_id)}/{str(self.db_id)}/',
         data=json.dumps(self.data),
-        content_type='html/json')
+        content_type='html/json',
+    )
 
 
 def api_delete_cast(self, cast_id):
@@ -69,34 +68,30 @@ def api_delete_casts(self, list_of_cast_ids):
 
 def api_create_cast_get_type(self):
     return self.tester.get(
-        self.url + 'get_type/' + str(SERVER_GROUP) + '/' +
-        str(self.server_id) + '/' + str(
-            self.db_id) + '/',
-        content_type='html/json')
+        f'{self.url}get_type/{str(SERVER_GROUP)}/{str(self.server_id)}/{str(self.db_id)}/',
+        content_type='html/json',
+    )
 
 
 def api_get_cast_node_dependent(self):
     return self.tester.get(
-        self.url + 'dependent/' + str(SERVER_GROUP) + '/' + str(
-            self.server_id) + '/' +
-        str(self.db_id) + '/' + str(self.cast_id),
-        content_type='html/json')
+        f'{self.url}dependent/{str(SERVER_GROUP)}/{str(self.server_id)}/{str(self.db_id)}/{str(self.cast_id)}',
+        content_type='html/json',
+    )
 
 
 def api_get_cast_node_dependencies(self):
     return self.tester.get(
-        self.url + 'dependency/' + str(SERVER_GROUP) + '/' + str(
-            self.server_id) + '/' +
-        str(self.db_id) + '/' + str(self.cast_id),
-        content_type='html/json')
+        f'{self.url}dependency/{str(SERVER_GROUP)}/{str(self.server_id)}/{str(self.db_id)}/{str(self.cast_id)}',
+        content_type='html/json',
+    )
 
 
 def api_get_cast_sql(self):
     return self.tester.get(
-        self.url + 'sql/' + str(SERVER_GROUP) + '/' + str(
-            self.server_id) + '/' +
-        str(self.db_id) + '/' + str(self.cast_id),
-        content_type='html/json')
+        f'{self.url}sql/{str(SERVER_GROUP)}/{str(self.server_id)}/{str(self.db_id)}/{str(self.cast_id)}',
+        content_type='html/json',
+    )
 
 
 def api_update_cast(self):
@@ -160,23 +155,17 @@ def create_cast(server, source_type, target_type):
         old_isolation_level = connection.isolation_level
         connection.set_isolation_level(0)
         pg_cursor = connection.cursor()
-        pg_cursor.execute("CREATE CAST (%s AS %s) WITHOUT"
-                          " FUNCTION AS IMPLICIT" % (source_type, target_type))
+        pg_cursor.execute(
+            f"CREATE CAST ({source_type} AS {target_type}) WITHOUT FUNCTION AS IMPLICIT"
+        )
         connection.set_isolation_level(old_isolation_level)
         connection.commit()
 
         # Get 'oid' from newly created cast
         pg_cursor.execute(
-            "SELECT ca.oid FROM pg_catalog.pg_cast ca WHERE ca.castsource = "
-            "(SELECT t.oid FROM pg_catalog.pg_type t "
-            "WHERE format_type(t.oid, NULL)='%s') "
-            "AND ca.casttarget = (SELECT t.oid FROM pg_catalog.pg_type t "
-            "WHERE pg_catalog.format_type(t.oid, NULL) = '%s')" %
-            (source_type, target_type))
-        oid = pg_cursor.fetchone()
-        cast_id = ''
-        if oid:
-            cast_id = oid[0]
+            f"SELECT ca.oid FROM pg_catalog.pg_cast ca WHERE ca.castsource = (SELECT t.oid FROM pg_catalog.pg_type t WHERE format_type(t.oid, NULL)='{source_type}') AND ca.casttarget = (SELECT t.oid FROM pg_catalog.pg_type t WHERE pg_catalog.format_type(t.oid, NULL) = '{target_type}')"
+        )
+        cast_id = oid[0] if (oid := pg_cursor.fetchone()) else ''
         connection.close()
         return cast_id
     except Exception:
@@ -196,10 +185,7 @@ def verify_cast(connection, source_type, target_type):
             (source_type, target_type))
         casts = pg_cursor.fetchall()
         connection.close()
-        if len(casts) > 0:
-            return True
-        else:
-            return False
+        return len(casts) > 0
     except Exception:
         traceback.print_exc(file=sys.stderr)
 
@@ -217,8 +203,7 @@ def drop_cast(connection, source_type, target_type):
             "WHERE pg_catalog.format_type(t.oid, NULL) = '%s')" %
             (source_type, target_type))
         if pg_cursor.fetchall():
-            pg_cursor.execute(
-                "DROP CAST (%s AS %s) CASCADE" % (source_type, target_type))
+            pg_cursor.execute(f"DROP CAST ({source_type} AS {target_type}) CASCADE")
             connection.commit()
             connection.close()
     except Exception:

@@ -200,11 +200,10 @@ class AggregateView(PGChildNodeView):
                                         self._NODES_SQL]), scid=scid)
         status, res = self.conn.execute_dict(SQL)
 
-        if not status:
-            return internal_server_error(errormsg=res)
-        return ajax_response(
-            response=res['rows'],
-            status=200
+        return (
+            ajax_response(response=res['rows'], status=200)
+            if status
+            else internal_server_error(errormsg=res)
         )
 
     @check_precondition
@@ -224,22 +223,18 @@ class AggregateView(PGChildNodeView):
             JSON of available aggregate child nodes
         """
 
-        res = []
         SQL = render_template("/".join([self.template_path,
                                         self._NODES_SQL]), scid=scid)
         status, rset = self.conn.execute_2darray(SQL)
         if not status:
             return internal_server_error(errormsg=rset)
 
-        for row in rset['rows']:
-            res.append(
-                self.blueprint.generate_browser_node(
-                    row['oid'],
-                    scid,
-                    row['name'],
-                    icon="icon-aggregate"
-                ))
-
+        res = [
+            self.blueprint.generate_browser_node(
+                row['oid'], scid, row['name'], icon="icon-aggregate"
+            )
+            for row in rset['rows']
+        ]
         return make_json_response(
             data=res,
             status=200
@@ -298,13 +293,7 @@ class AggregateView(PGChildNodeView):
         """
 
         status, res = self._fetch_properties(scid, agid)
-        if not status:
-            return res
-
-        return ajax_response(
-            response=res,
-            status=200
-        )
+        return ajax_response(response=res, status=200) if status else res
 
     def _fetch_properties(self, scid, agid):
         """

@@ -9,6 +9,7 @@
 
 """A blueprint module implementing the Spnego/Kerberos authentication."""
 
+
 import base64
 from os import environ, path, remove
 
@@ -36,17 +37,11 @@ from pgadmin.utils.csrf import pgCSRFProtect
 try:
     import gssapi
     KERBEROS_AUTH_AVAILABLE = True
-except ImportError:
+except (ImportError, OSError):
     # Do not fail at this time, as this could be a desktop mode.
     # Instead throw the runtime error, when the server attempts
     # to use this authentication method.
     KERBEROS_AUTH_AVAILABLE = False
-except OSError:
-    # On Windows, it fails with OSError, when KFW libraries not found.
-    # Instead throw the runtime error, when the server attempts
-    # to use this authentication method.
-    KERBEROS_AUTH_AVAILABLE = False
-
 # Set the Kerberos config file
 if config.KRB_KTNAME and config.KRB_KTNAME != '<KRB5_KEYTAB_FILE>':
     environ['KRB5_KTNAME'] = config.KRB_KTNAME
@@ -179,11 +174,7 @@ class KerberosAuthentication(BaseAuthentication):
         authorization = request.headers.get("Authorization", None)
         form_class = _security.login_form
 
-        if request.json:
-            form = form_class(MultiDict(request.json))
-        else:
-            form = form_class()
-
+        form = form_class(MultiDict(request.json)) if request.json else form_class()
         try:
             if authorization is not None:
                 auth_header = authorization.split()
@@ -193,7 +184,7 @@ class KerberosAuthentication(BaseAuthentication):
                     if status:
                         # Saving the first 15 characters of the kerberos key
                         # to encrypt/decrypt database password
-                        session['pass_enc_key'] = auth_header[1][0:15]
+                        session['pass_enc_key'] = auth_header[1][:15]
                         # Create user
                         retval = self.__auto_create_user(
                             str(negotiate.initiator_name))
@@ -221,8 +212,10 @@ class KerberosAuthentication(BaseAuthentication):
         return retval
 
     def negotiate_start(self, in_token):
-        svc_princ = gssapi.Name('HTTP@%s' % config.KRB_APP_HOST_NAME,
-                                name_type=gssapi.NameType.hostbased_service)
+        svc_princ = gssapi.Name(
+            f'HTTP@{config.KRB_APP_HOST_NAME}',
+            name_type=gssapi.NameType.hostbased_service,
+        )
         cname = svc_princ.canonicalize(gssapi.MechType.kerberos)
 
         try:
@@ -235,28 +228,27 @@ class KerberosAuthentication(BaseAuthentication):
 
         if out_token and not context.complete:
             return False, out_token
-        if context.complete:
-            deleg_creds = context.delegated_creds
-            if not hasattr(deleg_creds, 'name'):
-                error_msg = gettext('Delegated credentials not supplied.')
-                current_app.logger.error(error_msg)
-                return False, Exception(error_msg)
-            try:
-                cache_file_path = path.join(
-                    config.KERBEROS_CCACHE_DIR, 'pgadmin_cache_{0}'.format(
-                        deleg_creds.name)
-                )
-                CCACHE = 'FILE:{0}'.format(cache_file_path)
-                store = {'ccache': CCACHE}
-                deleg_creds.store(store, overwrite=True, set_default=True)
-                session['KRB5CCNAME'] = CCACHE
-            except Exception as e:
-                current_app.logger.exception(e)
-                return False, e
-
-            return True, context
-        else:
+        if not context.complete:
             return False, None
+        deleg_creds = context.delegated_creds
+        if not hasattr(deleg_creds, 'name'):
+            error_msg = gettext('Delegated credentials not supplied.')
+            current_app.logger.error(error_msg)
+            return False, Exception(error_msg)
+        try:
+            cache_file_path = path.join(
+                config.KERBEROS_CCACHE_DIR, 'pgadmin_cache_{0}'.format(
+                    deleg_creds.name)
+            )
+            CCACHE = 'FILE:{0}'.format(cache_file_path)
+            store = {'ccache': CCACHE}
+            deleg_creds.store(store, overwrite=True, set_default=True)
+            session['KRB5CCNAME'] = CCACHE
+        except Exception as e:
+            current_app.logger.exception(e)
+            return False, e
+
+        return True, context
 
     def negotiate_end(self, context):
         # Free Delegated Credentials

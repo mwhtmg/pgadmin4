@@ -34,25 +34,23 @@ class DomainConstraintNodeAndNodesTestCase(BaseTestGenerator):
         self.schema_name = schema_info["schema_name"]
         self.server_id = schema_info["server_id"]
         self.db_id = schema_info["db_id"]
-        self.domain_name = "domain_%s" % (str(uuid.uuid4())[1:8])
-        self.domain_con_name = \
-            "test_domain_con_add_%s" % (str(uuid.uuid4())[1:8])
+        self.domain_name = f"domain_{str(uuid.uuid4())[1:8]}"
+        self.domain_con_name = f"test_domain_con_add_{str(uuid.uuid4())[1:8]}"
 
         self.domain_info = \
-            domain_cons_utils.create_domain(self.server, self.db_name,
+                domain_cons_utils.create_domain(self.server, self.db_name,
                                             self.schema_name, self.schema_id,
                                             self.domain_name)
 
         self.domain_constraint_id = \
-            domain_cons_utils.create_domain_constraints(self.server,
+                domain_cons_utils.create_domain_constraints(self.server,
                                                         self.db_name,
                                                         self.schema_name,
                                                         self.domain_name,
                                                         self.domain_con_name)
-        self.domain_con_name = \
-            "test_domain_con_node_%s" % (str(uuid.uuid4())[1:8])
+        self.domain_con_name = f"test_domain_con_node_{str(uuid.uuid4())[1:8]}"
         self.domain_constraint_id_invalid = \
-            domain_cons_utils.create_domain_constraints_invalid(
+                domain_cons_utils.create_domain_constraints_invalid(
                 self.server, self.db_name, self.schema_name,
                 self.domain_name, self.domain_con_name)
 
@@ -99,21 +97,21 @@ class DomainConstraintNodeAndNodesTestCase(BaseTestGenerator):
         if not domain_cons_response:
             raise Exception("Could not find domain constraint.")
 
-        if self.is_positive_test and self.invalid:
-            if hasattr(self, "node"):
+        if self.is_positive_test and self.invalid and hasattr(self, "node"):
 
-                response = self.get_domain_constraint_node(
-                    self.domain_constraint_id_invalid)
-            else:
-                response = self.get_domain_constraint_node("")
+            response = self.get_domain_constraint_node(
+                self.domain_constraint_id_invalid)
+        elif (
+            self.is_positive_test
+            and self.invalid
+            or self.is_positive_test
+            and not hasattr(self, "node")
+        ):
+            response = self.get_domain_constraint_node("")
 
         elif self.is_positive_test:
-            if hasattr(self, "node"):
-                response = self.get_domain_constraint_node(
-                    self.domain_constraint_id)
-            else:
-                response = self.get_domain_constraint_node("")
-
+            response = self.get_domain_constraint_node(
+                self.domain_constraint_id)
         else:
             if hasattr(self, "error_fetching_domain_constraint"):
                 with patch(self.mock_data["function_name"],
@@ -127,7 +125,7 @@ class DomainConstraintNodeAndNodesTestCase(BaseTestGenerator):
             if hasattr(self, "wrong_domain_constraint_id"):
                 self.domain_constraint_id = 99999
                 response = \
-                    self.get_domain_constraint_node(self.domain_constraint_id)
+                        self.get_domain_constraint_node(self.domain_constraint_id)
 
         actual_response_code = response.status_code
         expected_response_code = self.expected_data['status_code']

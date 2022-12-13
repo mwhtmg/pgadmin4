@@ -66,23 +66,16 @@ class FDWDGetTestCase(BaseTestGenerator):
                                                  utils.SERVER_GROUP,
                                                  self.server_id,
                                                  self.db_id)
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
 
         if self.is_positive_test:
-            if hasattr(self, "fdw_list"):
-                response = self.get_fdw_list()
-            else:
-                response = self.get_fdw()
+            response = self.get_fdw_list() if hasattr(self, "fdw_list") else self.get_fdw()
         else:
             if hasattr(self, "error_fetching_fdw"):
                 with patch(self.mock_data["function_name"],
-                           return_value=eval(self.mock_data["return_value"])):
-                    if hasattr(self, "fdw_list"):
-                        response = self.get_fdw_list()
-                    else:
-                        response = self.get_fdw()
-
+                                       return_value=eval(self.mock_data["return_value"])):
+                    response = self.get_fdw_list() if hasattr(self, "fdw_list") else self.get_fdw()
             if hasattr(self, "wrong_fdw_id"):
                 self.fdw_id = 99999
                 response = self.get_fdw()

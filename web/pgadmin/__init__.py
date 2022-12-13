@@ -82,12 +82,9 @@ class PgAdmin(Flask):
         try:
             for module_name in find_modules(basemodule, True):
                 if module_name in self.config['MODULE_BLACKLIST']:
-                    self.logger.info(
-                        'Skipping blacklisted module: %s' % module_name
-                    )
+                    self.logger.info(f'Skipping blacklisted module: {module_name}')
                     continue
-                self.logger.info(
-                    'Examining potential module: %s' % module_name)
+                self.logger.info(f'Examining potential module: {module_name}')
                 module = import_module(module_name)
                 for key in list(module.__dict__.keys()):
                     if isinstance(module.__dict__[key], PgAdminModule):
@@ -110,9 +107,9 @@ class PgAdmin(Flask):
 
     @property
     def messages(self):
-        messages = dict()
+        messages = {}
         for module in self.submodules:
-            messages.update(getattr(module, "messages", dict()))
+            messages |= getattr(module, "messages", {})
         return messages
 
     @property
@@ -137,10 +134,7 @@ class PgAdmin(Flask):
             """
             Generate endpoint URL at per WSGI alias
             """
-            if is_wsgi_root_present and url:
-                return wsgi_root_path + url
-            else:
-                return url
+            return wsgi_root_path + url if is_wsgi_root_present and url else url
 
         # Fetch all endpoints and their respective url
         for rule in current_app.url_map.iter_rules('static'):
@@ -181,8 +175,10 @@ class PgAdmin(Flask):
         for module in self.submodules:
             for key, value in module.menu_items.items():
                 menu_items[key].extend(value)
-        menu_items = dict((key, sorted(value, key=attrgetter('priority')))
-                          for key, value in menu_items.items())
+        menu_items = {
+            key: sorted(value, key=attrgetter('priority'))
+            for key, value in menu_items.items()
+        }
         return menu_items
 
     def register_logout_hook(self, module):
@@ -302,7 +298,7 @@ def create_app(app_name=None):
     # Initialise i18n
     babel = Babel(app)
 
-    app.logger.debug('Available translations: %s' % babel.list_translations())
+    app.logger.debug(f'Available translations: {babel.list_translations()}')
 
     @babel.localeselector
     def get_locale():
@@ -411,8 +407,8 @@ def create_app(app_name=None):
             else:
                 if not os.path.exists(SQLITE_PATH):
                     raise FileNotFoundError(
-                        'SQLite database file "' + SQLITE_PATH +
-                        '" does not exists.')
+                        f'SQLite database file "{SQLITE_PATH}" does not exists.'
+                    )
                 raise RuntimeError(
                     'The configuration database file is not valid.')
         else:
@@ -596,7 +592,7 @@ def create_app(app_name=None):
 
             if proc_arch == 'x86' and not proc_arch64:
                 arch_keys.add(0)
-            elif proc_arch == 'x86' or proc_arch == 'amd64':
+            elif proc_arch in ['x86', 'amd64']:
                 arch_keys.add(winreg.KEY_WOW64_32KEY)
                 arch_keys.add(winreg.KEY_WOW64_64KEY)
 
@@ -608,7 +604,7 @@ def create_app(app_name=None):
                             "SOFTWARE\\" + server_type + "\\Services", 0,
                             winreg.KEY_READ | arch_key
                         )
-                        for i in range(0, winreg.QueryInfoKey(root_key)[0]):
+                        for i in range(winreg.QueryInfoKey(root_key)[0]):
                             inst_id = winreg.EnumKey(root_key, i)
                             inst_key = winreg.OpenKey(root_key, inst_id)
 
@@ -714,7 +710,7 @@ def create_app(app_name=None):
     # Load plugin modules
     ##########################################################################
     for module in app.find_submodules('pgadmin'):
-        app.logger.info('Registering blueprint module: %s' % module)
+        app.logger.info(f'Registering blueprint module: {module}')
         if app.blueprints.get(module.name) is None:
             app.register_blueprint(module)
             app.register_logout_hook(module)
@@ -803,7 +799,7 @@ def create_app(app_name=None):
     @app.after_request
     def after_request(response):
         if 'key' in request.args:
-            domain = dict()
+            domain = {}
             if config.COOKIE_DEFAULT_DOMAIN and \
                     config.COOKIE_DEFAULT_DOMAIN != 'localhost':
                 domain['domain'] = config.COOKIE_DEFAULT_DOMAIN
@@ -839,7 +835,7 @@ def create_app(app_name=None):
             else:
                 # Sometimes there may be direct endpoint for some files
                 # There will be only one rule for such endpoints
-                urls = [url for url in app.url_map.iter_rules(endpoint)]
+                urls = list(app.url_map.iter_rules(endpoint))
                 if len(urls) == 1 and urls[0].rule.endswith(extensions):
                     values[config.APP_VERSION_PARAM] = \
                         config.APP_VERSION_INT

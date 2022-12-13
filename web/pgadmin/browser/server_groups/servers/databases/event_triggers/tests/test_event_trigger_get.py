@@ -35,18 +35,17 @@ class EventTriggerGetTestCase(BaseTestGenerator):
         self.extension_name = "postgres_fdw"
         self.db_name = parent_node_dict["database"][-1]["db_name"]
         self.db_user = self.server["username"]
-        self.func_name = "trigger_func_%s" % str(uuid.uuid4())[1:8]
-        self.trigger_name = "event_trigger_get_%s" % (str(uuid.uuid4())[1:8])
+        self.func_name = f"trigger_func_{str(uuid.uuid4())[1:8]}"
+        self.trigger_name = f"event_trigger_get_{str(uuid.uuid4())[1:8]}"
         server_con = server_utils.connect_server(self, self.server_id)
-        if not server_con["info"] == "Server connected.":
+        if server_con["info"] != "Server connected.":
             raise Exception("Could not connect to server to add resource "
                             "groups.")
         server_version = 0
-        if "type" in server_con["data"]:
-            if server_con["data"]["version"] < 90300:
-                message = "Event triggers are not supported by PG9.2 " \
+        if "type" in server_con["data"] and server_con["data"]["version"] < 90300:
+            message = "Event triggers are not supported by PG9.2 " \
                           "and PPAS9.2 and below."
-                self.skipTest(message)
+            self.skipTest(message)
         self.function_info = trigger_funcs_utils.create_trigger_function(
             self.server, self.db_name, self.schema_name, self.func_name,
             server_version)
@@ -144,18 +143,17 @@ class EventTriggerGetNodesAndNodeTestCase(BaseTestGenerator):
         self.extension_name = "postgres_fdw"
         self.db_name = parent_node_dict["database"][-1]["db_name"]
         self.db_user = self.server["username"]
-        self.func_name = "trigger_func_%s" % str(uuid.uuid4())[1:8]
-        self.trigger_name = "event_trigger_get_%s" % (str(uuid.uuid4())[1:8])
+        self.func_name = f"trigger_func_{str(uuid.uuid4())[1:8]}"
+        self.trigger_name = f"event_trigger_get_{str(uuid.uuid4())[1:8]}"
         server_con = server_utils.connect_server(self, self.server_id)
-        if not server_con["info"] == "Server connected.":
+        if server_con["info"] != "Server connected.":
             raise Exception("Could not connect to server to add resource "
                             "groups.")
         server_version = 0
-        if "type" in server_con["data"]:
-            if server_con["data"]["version"] < 90300:
-                message = "Event triggers are not supported by PG9.2 " \
+        if "type" in server_con["data"] and server_con["data"]["version"] < 90300:
+            message = "Event triggers are not supported by PG9.2 " \
                           "and PPAS9.2 and below."
-                self.skipTest(message)
+            self.skipTest(message)
         self.function_info = trigger_funcs_utils.create_trigger_function(
             self.server, self.db_name, self.schema_name, self.func_name,
             server_version)
@@ -211,22 +209,22 @@ class EventTriggerGetNodesAndNodeTestCase(BaseTestGenerator):
         expected_response_code = False
 
         if self.is_positive_test:
-            if hasattr(self, "node"):
-                response = self.get_event_trigger_node()
-            else:
-                response = self.get_event_trigger_nodes()
+            response = (
+                self.get_event_trigger_node()
+                if hasattr(self, "node")
+                else self.get_event_trigger_nodes()
+            )
             actual_response_code = response.status_code
             expected_response_code = self.expected_data['status_code']
-        else:
-            if hasattr(self, "error_fetching_event_trigger"):
-                with patch(self.mock_data["function_name"],
-                           return_value=eval(self.mock_data["return_value"])):
-                    if hasattr(self, "node"):
-                        response = self.get_event_trigger_node()
-                    else:
-                        response = self.get_event_trigger_nodes()
-                    actual_response_code = response.status_code
-                    expected_response_code = self.expected_data['status_code']
+        elif hasattr(self, "error_fetching_event_trigger"):
+            with patch(self.mock_data["function_name"],
+                       return_value=eval(self.mock_data["return_value"])):
+                if hasattr(self, "node"):
+                    response = self.get_event_trigger_node()
+                else:
+                    response = self.get_event_trigger_nodes()
+                actual_response_code = response.status_code
+                expected_response_code = self.expected_data['status_code']
 
         self.assertEqual(actual_response_code, expected_response_code)
 

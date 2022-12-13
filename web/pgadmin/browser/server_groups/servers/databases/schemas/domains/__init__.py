@@ -213,10 +213,7 @@ class DomainView(PGChildNodeView, DataTypeReader, SchemaDiffObjectCompare):
         :return: data.
         """
         data = {}
-        list_params = []
-        if request.method == 'GET':
-            list_params = ['constraints', 'seclabels']
-
+        list_params = ['constraints', 'seclabels'] if request.method == 'GET' else []
         for key in req:
             if (
                 key in list_params and req[key] != '' and
@@ -323,11 +320,10 @@ class DomainView(PGChildNodeView, DataTypeReader, SchemaDiffObjectCompare):
                               scid=scid)
         status, res = self.conn.execute_dict(SQL)
 
-        if not status:
-            return internal_server_error(errormsg=res)
-        return ajax_response(
-            response=res['rows'],
-            status=200
+        return (
+            ajax_response(response=res['rows'], status=200)
+            if status
+            else internal_server_error(errormsg=res)
         )
 
     @check_precondition
@@ -342,22 +338,18 @@ class DomainView(PGChildNodeView, DataTypeReader, SchemaDiffObjectCompare):
             scid: Schema Id
         """
 
-        res = []
         SQL = render_template("/".join([self.template_path, self._NODE_SQL]),
                               scid=scid)
         status, rset = self.conn.execute_2darray(SQL)
         if not status:
             return internal_server_error(errormsg=rset)
 
-        for row in rset['rows']:
-            res.append(
-                self.blueprint.generate_browser_node(
-                    row['oid'],
-                    scid,
-                    row['name'],
-                    icon="icon-domain"
-                ))
-
+        res = [
+            self.blueprint.generate_browser_node(
+                row['oid'], scid, row['name'], icon="icon-domain"
+            )
+            for row in rset['rows']
+        ]
         return make_json_response(
             data=res,
             status=200
@@ -408,13 +400,7 @@ class DomainView(PGChildNodeView, DataTypeReader, SchemaDiffObjectCompare):
             doid: Domain Id
         """
         status, res = self._fetch_properties(did, scid, doid)
-        if not status:
-            return res
-
-        return ajax_response(
-            response=res,
-            status=200
-        )
+        return ajax_response(response=res, status=200) if status else res
 
     def _fetch_properties(self, did, scid, doid):
         """
@@ -476,15 +462,10 @@ It may have been removed by another user or moved to another schema.
         # So, we need to separate Length: 1, Precision: 1
 
         if basetype != '' and basetype.find("(") > 0:
-            substr = basetype[basetype.find("(") + 1:len(
-                basetype) - 1]
+            substr = basetype[basetype.find("(") + 1:-1]
             typlen = substr.split(",")
             typ_len = typlen[0]
-            if len(typlen) > 1:
-                typ_precision = typlen[1]
-            else:
-                typ_precision = ''
-
+            typ_precision = typlen[1] if len(typlen) > 1 else ''
         return {'typlen': typ_len, 'precision': typ_precision}
 
     @check_precondition
@@ -508,11 +489,10 @@ It may have been removed by another user or moved to another schema.
             if not status:
                 return internal_server_error(errormsg=rset)
 
-            for row in rset['rows']:
-                res.append({'label': row['copy_collation'],
-                            'value': row['copy_collation']}
-                           )
-
+            res.extend(
+                {'label': row['copy_collation'], 'value': row['copy_collation']}
+                for row in rset['rows']
+            )
             return make_json_response(
                 data=res,
                 status=200
@@ -548,12 +528,10 @@ AND relkind != 'c'))"""
         # Get Types
         status, types = self.get_types(self.conn, condition)
 
-        if not status:
-            return internal_server_error(errormsg=types)
-
-        return make_json_response(
-            data=types,
-            status=200
+        return (
+            make_json_response(data=types, status=200)
+            if status
+            else internal_server_error(errormsg=types)
         )
 
     @check_precondition
@@ -604,16 +582,14 @@ AND relkind != 'c'))"""
                                         self._OID_SQL]),
                               doid=doid)
         status, scid = self.conn.execute_scalar(SQL)
-        if not status:
-            return internal_server_error(errormsg=scid)
-
-        return jsonify(
-            node=self.blueprint.generate_browser_node(
-                doid,
-                scid,
-                data['name'],
-                icon="icon-domain"
+        return (
+            jsonify(
+                node=self.blueprint.generate_browser_node(
+                    doid, scid, data['name'], icon="icon-domain"
+                )
             )
+            if status
+            else internal_server_error(errormsg=scid)
         )
 
     @check_precondition
@@ -630,9 +606,7 @@ AND relkind != 'c'))"""
             only_sql: Return only sql if True
         """
         if doid is None:
-            data = request.form if request.form else json.loads(
-                request.data, encoding='utf-8'
-            )
+            data = request.form or json.loads(request.data, encoding='utf-8')
         else:
             data = {'ids': [doid]}
 
@@ -704,16 +678,14 @@ AND relkind != 'c'))"""
                                         self._OID_SQL]),
                               doid=doid)
         status, scid = self.conn.execute_scalar(SQL)
-        if not status:
-            return internal_server_error(errormsg=scid)
-
-        return jsonify(
-            node=self.blueprint.generate_browser_node(
-                doid,
-                scid,
-                name,
-                icon="icon-%s" % self.node_type
+        return (
+            jsonify(
+                node=self.blueprint.generate_browser_node(
+                    doid, scid, name, icon=f"icon-{self.node_type}"
+                )
             )
+            if status
+            else internal_server_error(errormsg=scid)
         )
 
     @check_precondition
@@ -730,7 +702,7 @@ AND relkind != 'c'))"""
             json_resp: True then return json response
         """
         json_resp = kwargs.get('json_resp', True)
-        target_schema = kwargs.get('target_schema', None)
+        target_schema = kwargs.get('target_schema')
 
         SQL = render_template("/".join([self.template_path,
                                         self._PROPERTIES_SQL]),
@@ -772,10 +744,11 @@ AND relkind != 'c'))"""
 """.format(self.qtIdent(self.conn, data['basensp'], data['name']))
         SQL = sql_header + SQL
 
-        if not json_resp:
-            return SQL.strip('\n')
-
-        return ajax_response(response=SQL.strip('\n'))
+        return (
+            ajax_response(response=SQL.strip('\n'))
+            if json_resp
+            else SQL.strip('\n')
+        )
 
     @check_precondition
     @validate_request
@@ -869,15 +842,12 @@ AND relkind != 'c'))"""
             if not status:
                 return internal_server_error(errormsg=res)
 
-            con_data = {}
-            for c in res['rows']:
-                con_data[c['conoid']] = c
-
+            con_data = {c['conoid']: c for c in res['rows']}
             old_data['constraints'] = con_data
 
             SQL, data = self.check_domain_type(data, old_data, is_schema_diff)
             return SQL.strip('\n'), data['name'] if 'name' in data else \
-                old_data['name']
+                    old_data['name']
         else:
             SQL = render_template("/".join([self.template_path,
                                             self._CREATE_SQL]),
@@ -933,7 +903,7 @@ AND relkind != 'c'))"""
         :param scid: Schema Id
         :return:
         """
-        res = dict()
+        res = {}
         SQL = render_template("/".join([self.template_path,
                                         self._NODE_SQL]), scid=scid,
                               schema_diff=True)
@@ -960,9 +930,9 @@ AND relkind != 'c'))"""
         did = kwargs.get('did')
         scid = kwargs.get('scid')
         oid = kwargs.get('oid')
-        data = kwargs.get('data', None)
+        data = kwargs.get('data')
         drop_sql = kwargs.get('drop_sql', False)
-        target_schema = kwargs.get('target_schema', None)
+        target_schema = kwargs.get('target_schema')
 
         if data:
             if target_schema:
@@ -970,16 +940,15 @@ AND relkind != 'c'))"""
             sql, name = self.get_sql(gid=gid, sid=sid, scid=scid,
                                      data=data, doid=oid,
                                      is_schema_diff=True)
+        elif drop_sql:
+            sql = self.delete(gid=gid, sid=sid, did=did,
+                              scid=scid, doid=oid, only_sql=True)
+        elif target_schema:
+            sql = self.sql(gid=gid, sid=sid, did=did, scid=scid, doid=oid,
+                           target_schema=target_schema, json_resp=False)
         else:
-            if drop_sql:
-                sql = self.delete(gid=gid, sid=sid, did=did,
-                                  scid=scid, doid=oid, only_sql=True)
-            elif target_schema:
-                sql = self.sql(gid=gid, sid=sid, did=did, scid=scid, doid=oid,
-                               target_schema=target_schema, json_resp=False)
-            else:
-                sql = self.sql(gid=gid, sid=sid, did=did, scid=scid, doid=oid,
-                               json_resp=False)
+            sql = self.sql(gid=gid, sid=sid, did=did, scid=scid, doid=oid,
+                           json_resp=False)
         return sql
 
     def get_dependencies(self, conn, object_id, where=None,

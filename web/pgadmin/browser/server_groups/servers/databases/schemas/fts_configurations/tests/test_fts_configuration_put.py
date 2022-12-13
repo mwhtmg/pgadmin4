@@ -43,7 +43,7 @@ class FTSConfPutTestCase(BaseTestGenerator):
         self.server_id = schema_data['server_id']
         self.db_id = schema_data['db_id']
         self.db_name = parent_node_dict["database"][-1]["db_name"]
-        self.fts_conf_name = "fts_conf_%s" % str(uuid.uuid4())[1:8]
+        self.fts_conf_name = f"fts_conf_{str(uuid.uuid4())[1:8]}"
 
         self.fts_conf_id = fts_configuration_utils.create_fts_configuration(
             self.server, self.db_name, self.schema_name, self.fts_conf_name)
@@ -57,7 +57,7 @@ class FTSConfPutTestCase(BaseTestGenerator):
                                                  self.server_id,
                                                  self.db_id)
 
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
 
         schema_response = schema_utils.verify_schemas(self.server,
@@ -74,7 +74,7 @@ class FTSConfPutTestCase(BaseTestGenerator):
             raise Exception("Could not find the FTS Configuration.")
 
         data = \
-            {
+                {
                 "description": "This is FTS configuration update comment",
                 "id": self.fts_conf_id
             }
@@ -128,12 +128,12 @@ class FTSConfDictPutTestCase(BaseTestGenerator):
         self.server_id = schema_data['server_id']
         self.db_id = schema_data['db_id']
         self.db_name = parent_node_dict["database"][-1]["db_name"]
-        self.fts_conf_name = "fts_conf_%s" % str(uuid.uuid4())[1:8]
+        self.fts_conf_name = f"fts_conf_{str(uuid.uuid4())[1:8]}"
 
         self.fts_conf_id = fts_configuration_utils.create_fts_configuration(
             self.server, self.db_name, self.schema_name, self.fts_conf_name)
 
-        self.fts_dict_name = "fts_dict_%s" % str(uuid.uuid4())[1:8]
+        self.fts_dict_name = f"fts_dict_{str(uuid.uuid4())[1:8]}"
 
         # first add dictionary for update
         self.fts_dict_id = fts_dict_utils.create_fts_dictionary(
@@ -150,7 +150,7 @@ class FTSConfDictPutTestCase(BaseTestGenerator):
                                                  self.server_id,
                                                  self.db_id)
 
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
 
         schema_response = schema_utils.verify_schemas(self.server,
@@ -166,7 +166,7 @@ class FTSConfDictPutTestCase(BaseTestGenerator):
         if not fts_conf_response:
             raise Exception("Could not find the FTS Configuration.")
 
-        dictname = self.schema_name + '.' + self.fts_dict_name
+        dictname = f'{self.schema_name}.{self.fts_dict_name}'
 
         data = {
             "oid": self.fts_conf_id,

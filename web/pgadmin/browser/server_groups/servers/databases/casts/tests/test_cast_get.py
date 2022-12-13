@@ -41,33 +41,32 @@ class CastsGetTestCase(BaseTestGenerator):
                                                  utils.SERVER_GROUP,
                                                  self.server_id,
                                                  self.db_id)
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
 
         if self.is_positive_test:
-            if self.is_list:
-                response = cast_utils.api_get_cast(self, "")
-                cast_utils.assert_status_code(self, response)
+            response = (
+                cast_utils.api_get_cast(self, "")
+                if self.is_list
+                else cast_utils.api_get_cast(self, self.cast_id)
+            )
+            cast_utils.assert_status_code(self, response)
 
-            else:
-                response = cast_utils.api_get_cast(self, self.cast_id)
-                cast_utils.assert_status_code(self, response)
+        elif self.mocking_required:
+            with patch(self.mock_data["function_name"],
+                       side_effect=[eval(self.mock_data["return_value"])]):
+                if self.is_list:
+                    response = cast_utils.api_get_cast(self, "")
+                    cast_utils.assert_status_code(self, response)
+                    cast_utils.assert_error_message(self, response)
+
+                else:
+                    response = cast_utils.api_get_cast(self, self.cast_id)
+                    cast_utils.assert_status_code(self, response)
         else:
-            if self.mocking_required:
-                with patch(self.mock_data["function_name"],
-                           side_effect=[eval(self.mock_data["return_value"])]):
-                    if self.is_list:
-                        response = cast_utils.api_get_cast(self, "")
-                        cast_utils.assert_status_code(self, response)
-                        cast_utils.assert_error_message(self, response)
-
-                    else:
-                        response = cast_utils.api_get_cast(self, self.cast_id)
-                        cast_utils.assert_status_code(self, response)
-            else:
-                self.cast_id = 12893
-                response = cast_utils.api_get_cast(self, self.cast_id)
-                cast_utils.assert_status_code(self, response)
+            self.cast_id = 12893
+            response = cast_utils.api_get_cast(self, self.cast_id)
+            cast_utils.assert_status_code(self, response)
 
     def tearDown(self):
         """This function disconnect the test database and drop added cast."""

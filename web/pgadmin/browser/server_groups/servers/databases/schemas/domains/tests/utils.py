@@ -15,7 +15,7 @@ import json
 from regression.python_test_utils import test_utils as utils
 
 CURRENT_PATH = os.path.dirname(os.path.realpath(__file__))
-with open(CURRENT_PATH + "/domain_test_data.json") as data_file:
+with open(f"{CURRENT_PATH}/domain_test_data.json") as data_file:
     test_cases = json.load(data_file)
 
 
@@ -44,11 +44,9 @@ def create_domain(server, db_name, schema_name, schema_id, domain_name,
         pg_cursor = connection.cursor()
 
         if domain_sql is None:
-            query = 'CREATE DOMAIN ' + schema_name + '.' + domain_name + \
-                    ' AS character(10) DEFAULT 1'
+            query = f'CREATE DOMAIN {schema_name}.{domain_name} AS character(10) DEFAULT 1'
         else:
-            query = 'CREATE DOMAIN ' + schema_name + '.' +\
-                    domain_name + ' ' + domain_sql
+            query = f'CREATE DOMAIN {schema_name}.{domain_name} {domain_sql}'
 
         pg_cursor.execute(query)
         connection.commit()
@@ -107,8 +105,7 @@ def delete_domain(server, db_name, schema_name, domain_name):
                                              server['host'],
                                              server['port'])
         pg_cursor = connection.cursor()
-        pg_cursor.execute("DROP DOMAIN %s.%s" %
-                          (schema_name, domain_name))
+        pg_cursor.execute(f"DROP DOMAIN {schema_name}.{domain_name}")
         connection.commit()
         connection.close()
     except Exception:

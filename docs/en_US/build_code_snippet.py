@@ -39,9 +39,7 @@ def print_code(outstream, name, module, info=None):
 
     outstream.write("\n\n.. _{0}:\n\n{0}\n".format(name))
 
-    idx = 0
-    while idx < name_len:
-        idx += 1
+    for _ in range(name_len):
         outstream.write("*")
 
     if info:

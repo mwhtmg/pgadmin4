@@ -17,44 +17,33 @@ from regression.python_test_utils.test_utils import get_db_connection
 
 file_name = os.path.basename(__file__)
 CURRENT_PATH = os.path.dirname(os.path.realpath(__file__))
-with open(CURRENT_PATH + "/foreign_servers_test_data.json") as data_file:
+with open(f"{CURRENT_PATH}/foreign_servers_test_data.json") as data_file:
     test_cases = json.load(data_file)
 
 
 def get_fs_data(db_user, server, db_name):
-    data = {
+    return {
         "fsrvacl": [
             {
                 "grantee": db_user,
                 "grantor": db_user,
-                "privileges":
-                    [
-                        {
-                            "privilege_type": "U",
-                            "privilege": "true",
-                            "with_grant": "false"
-                        }
-                    ]
+                "privileges": [
+                    {
+                        "privilege_type": "U",
+                        "privilege": "true",
+                        "with_grant": "false",
+                    }
+                ],
             }
         ],
         "fsrvoptions": [
-            {
-                "fsrvoption": "host",
-                "fsrvvalue": server['host']
-            },
-            {
-                "fsrvoption": "port",
-                "fsrvvalue": str(server['port'])
-            },
-            {
-                "fsrvoption": "dbname",
-                "fsrvvalue": db_name
-            }
+            {"fsrvoption": "host", "fsrvvalue": server['host']},
+            {"fsrvoption": "port", "fsrvvalue": str(server['port'])},
+            {"fsrvoption": "dbname", "fsrvvalue": db_name},
         ],
         "fsrvowner": db_user,
-        "name": "test_fsrv_add_%s" % (str(uuid.uuid4())[1:8])
+        "name": f"test_fsrv_add_{str(uuid.uuid4())[1:8]}",
     }
-    return data
 
 
 def create_fsrv(server, db_name, fsrv_name, fdw_name):
@@ -86,17 +75,13 @@ def create_fsrv(server, db_name, fsrv_name, fdw_name):
 
         # Get 'oid' from newly created foreign server
         pg_cursor.execute(
-            "SELECT oid FROM pg_catalog.pg_foreign_server WHERE srvname = '%s'"
-            % fsrv_name)
-        oid = pg_cursor.fetchone()
-        fsrv_id = ''
-        if oid:
-            fsrv_id = oid[0]
+            f"SELECT oid FROM pg_catalog.pg_foreign_server WHERE srvname = '{fsrv_name}'"
+        )
+        fsrv_id = oid[0] if (oid := pg_cursor.fetchone()) else ''
         connection.close()
         return fsrv_id
     except Exception as exception:
-        exception = "Exception: %s: line:%s %s" % (
-            file_name, sys.exc_traceback.tb_lineno, exception)
+        exception = f"Exception: {file_name}: line:{sys.exc_traceback.tb_lineno} {exception}"
         print(exception, file=sys.stderr)
 
 
@@ -113,12 +98,11 @@ def verify_fsrv(server, db_name, fsrv_name):
         pg_cursor = connection.cursor()
 
         pg_cursor.execute(
-            "SELECT oid FROM pg_catalog.pg_foreign_server WHERE srvname = '%s'"
-            % fsrv_name)
+            f"SELECT oid FROM pg_catalog.pg_foreign_server WHERE srvname = '{fsrv_name}'"
+        )
         fsrvs = pg_cursor.fetchall()
         connection.close()
         return fsrvs
     except Exception as exception:
-        exception = "%s: line:%s %s" % (
-            file_name, sys.exc_traceback.tb_lineno, exception)
+        exception = f"{file_name}: line:{sys.exc_traceback.tb_lineno} {exception}"
         print(exception, file=sys.stderr)

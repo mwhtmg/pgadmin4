@@ -81,10 +81,9 @@ def is_version_in_range(sversion, min_ver, max_ver):
     if min_ver is None and max_ver is None:
         return True
 
-    if (min_ver is None or min_ver <= sversion) and \
-            (max_ver is None or max_ver >= sversion):
-        return True
-    return False
+    return (min_ver is None or min_ver <= sversion) and (
+        max_ver is None or max_ver >= sversion
+    )
 
 
 class PGChildModule(object):
@@ -203,17 +202,12 @@ class NodeView(View, metaclass=MethodViewType):
     def generate_ops(cls):
         cmds = []
         for op in cls.operations:
-            idx = 0
-            for ops in cls.operations[op]:
-                meths = []
-                for meth in ops:
-                    meths.append(meth.upper())
-                if len(meths) > 0:
+            for idx, ops in enumerate(cls.operations[op]):
+                if meths := [meth.upper() for meth in ops]:
                     cmds.append({
                         'cmd': op, 'req': (idx == 0),
                         'with_id': (idx != 2), 'methods': meths
                     })
-                idx += 1
         return cmds
 
     # Inherited class needs to modify these parameters
@@ -228,7 +222,7 @@ class NodeView(View, metaclass=MethodViewType):
     @classmethod
     def get_node_urls(cls):
         assert cls.node_type is not None, \
-            "Please set the node_type for this class ({0})".format(
+                "Please set the node_type for this class ({0})".format(
                 str(cls.__class__.__name__))
         common_url = '/'
         for p in cls.parent_ids:
@@ -236,9 +230,7 @@ class NodeView(View, metaclass=MethodViewType):
 
         id_url = None
         for p in cls.ids:
-            id_url = '{0}<{1}:{2}>'.format(
-                common_url if not id_url else id_url,
-                p['type'], p['id'])
+            id_url = '{0}<{1}:{2}>'.format(id_url or common_url, p['type'], p['id'])
 
         return id_url, common_url
 
@@ -426,10 +418,7 @@ class PGChildNodeView(NodeView):
             sid=kwargs['sid']
         )
 
-        did = None
-        if 'did' in kwargs:
-            did = kwargs['did']
-
+        did = kwargs.get('did')
         try:
             conn = manager.connection(did=did)
             if not conn.connected():
@@ -495,7 +484,6 @@ class PGChildNodeView(NodeView):
                 current_app.logger.error(result)
 
             for row in result['rows']:
-                ref_name = row['refname']
                 dep_str = row['deptype']
                 dep_type = ''
 
@@ -505,6 +493,7 @@ class PGChildNodeView(NodeView):
                     dep_type = 'Owner'
 
                 if row['refclassid'] == 1260:
+                    ref_name = row['refname']
                     dependencies.append(
                         {'type': 'role',
                          'name': ref_name,
@@ -535,10 +524,7 @@ class PGChildNodeView(NodeView):
 
         query = render_template("/".join([sql_path, 'dependents.sql']),
                                 where_clause=where_clause)
-        # fetch the dependency for the selected object
-        dependents = self.__fetch_dependency(conn, query)
-
-        return dependents
+        return self.__fetch_dependency(conn, query)
 
     def __fetch_dependency(self, conn, query, show_system_objects=None,
                            is_schema_diff=False):
@@ -584,7 +570,7 @@ class PGChildNodeView(NodeView):
         }
 
         # Merging above two dictionaries
-        types = {**standard_types, **custom_types}
+        types = standard_types | custom_types
 
         # Dictionary for the restrictions
         dep_types = {
@@ -599,7 +585,7 @@ class PGChildNodeView(NodeView):
         if not status:
             current_app.logger.error(result)
 
-        dependency = list()
+        dependency = []
 
         for row in result['rows']:
             _ref_name = row['refname']
@@ -612,7 +598,7 @@ class PGChildNodeView(NodeView):
 
             ref_name = ''
             if nsp_name is not None:
-                ref_name = nsp_name + '.'
+                ref_name = f'{nsp_name}.'
 
             type_name = ''
             icon = None
@@ -621,31 +607,30 @@ class PGChildNodeView(NodeView):
             # if type is not present in the types dictionary then
             # we will continue and not going to add it.
             if len(type_str) and type_str in types and \
-                    types[type_str] is not None:
+                        types[type_str] is not None:
                 type_name = types[type_str]
-                if type_str == 'Rl':
-                    ref_name = \
-                        _ref_name + ' ON ' + ref_name + row['ownertable']
-                    _ref_name = None
-                elif type_str == 'Cf':
+                if type_str == 'Cf':
                     ref_name += row['ownertable'] + '.'
+                elif type_str == 'Rl':
+                    ref_name = f'{_ref_name} ON {ref_name}' + row['ownertable']
+                    _ref_name = None
                 elif type_str == 'm':
                     icon = 'icon-mview'
             elif len(type_str) and type_str[0] in types and \
-                    types[type_str[0]] is None:
+                        types[type_str[0]] is None:
                 # if type is present in the types dictionary, but it's
                 # value is None then it requires special handling.
                 if type_str[0] == 'r':
                     if (len(type_str) > 1 and type_str[1].isdigit() and
                         int(type_str[1]) > 0) or \
-                        (len(type_str) > 2 and type_str[2].isdigit() and
+                            (len(type_str) > 2 and type_str[2].isdigit() and
                          int(type_str[2]) > 0):
                         type_name = 'column'
                     else:
                         type_name = 'table'
                         if 'is_inherits' in row and row['is_inherits'] == '1':
                             if 'is_inherited' in row and \
-                                    row['is_inherited'] == '1':
+                                        row['is_inherited'] == '1':
                                 icon = 'icon-table-multi-inherit'
                             # For tables under partitioned tables,
                             # is_inherits will be true and dependency
@@ -653,20 +638,18 @@ class PGChildNodeView(NodeView):
                             # partitioned table
                             elif ('is_inherited' in row and
                                   row['is_inherited'] == '0') and \
-                                    dep_str == 'a':
+                                        dep_str == 'a':
                                 type_name = 'partition'
                             else:
                                 icon = 'icon-table-inherits'
                         elif 'is_inherited' in row and \
-                                row['is_inherited'] == '1':
+                                    row['is_inherited'] == '1':
                             icon = 'icon-table-inherited'
                 elif type_str[0] == 'A':
-                    # Include only functions
-                    if row['adbin'].startswith('{FUNCEXPR'):
-                        type_name = 'function'
-                        ref_name = row['adsrc']
-                    else:
+                    if not row['adbin'].startswith('{FUNCEXPR'):
                         continue
+                    type_name = 'function'
+                    ref_name = row['adsrc']
             else:
                 continue
 
@@ -720,13 +703,9 @@ class PGChildNodeView(NodeView):
         :param only_sql:
         :return:
         """
-        if self.cmd == 'delete' or only_sql:
-            # This is a cascade operation
-            cascade = True
-        else:
-            cascade = False
-        return cascade
+        return bool(self.cmd == 'delete' or only_sql)
 
     def not_found_error_msg(self, custom_label=None):
-        return gettext("Could not find the specified {}.".format(
-            custom_label if custom_label else self.node_label).lower())
+        return gettext(
+            f"Could not find the specified {custom_label or self.node_label}.".lower()
+        )

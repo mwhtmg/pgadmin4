@@ -26,13 +26,13 @@ class LanguagesGetDependentTestCase(BaseTestGenerator):
         self.server_id = self.server_data["server_id"]
         self.db_id = self.server_data['db_id']
         self.db_name = self.server_data["db_name"]
-        self.lang_name = "language_%s" % str(uuid.uuid4())[1:8]
+        self.lang_name = f"language_{str(uuid.uuid4())[1:8]}"
         db_con = database_utils.connect_database(self,
                                                  utils.SERVER_GROUP,
                                                  self.server_id,
                                                  self.db_id)
 
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
         self.language_id = language_utils.create_language(self.server,
                                                           self.db_name,

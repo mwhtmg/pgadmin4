@@ -17,32 +17,29 @@ import os
 from regression.python_test_utils.test_utils import get_db_connection
 
 CURRENT_PATH = os.path.dirname(os.path.realpath(__file__))
-with open(CURRENT_PATH + "/fdw_test_data.json") as data_file:
+with open(f"{CURRENT_PATH}/fdw_test_data.json") as data_file:
     test_cases = json.load(data_file)
 
 
 def get_fdw_data(schema_name, db_user):
-    data = {
-        "fdwacl":
-            [
-                {
-                    "grantee": db_user,
-                    "grantor": db_user,
-                    "privileges":
-                        [
-                            {
-                                "privilege_type": "U",
-                                "privilege": "true",
-                                "with_grant": "true"
-                            }
-                        ]
-                }
-            ],
+    return {
+        "fdwacl": [
+            {
+                "grantee": db_user,
+                "grantor": db_user,
+                "privileges": [
+                    {
+                        "privilege_type": "U",
+                        "privilege": "true",
+                        "with_grant": "true",
+                    }
+                ],
+            }
+        ],
         "fdwoptions": [],
         "fdwowner": db_user,
-        "name": "fdw_add_%s" % (str(uuid.uuid4())[1:8])
+        "name": f"fdw_add_{str(uuid.uuid4())[1:8]}",
     }
-    return data
 
 
 def create_fdw(server, db_name, fdw_name):
@@ -74,13 +71,9 @@ def create_fdw(server, db_name, fdw_name):
         connection.commit()
         # Get 'oid' from newly created foreign data wrapper
         pg_cursor.execute(
-            "SELECT oid FROM pg_catalog.pg_foreign_data_wrapper "
-            "WHERE fdwname = '%s'"
-            % fdw_name)
-        oid = pg_cursor.fetchone()
-        fdw_id = ''
-        if oid:
-            fdw_id = oid[0]
+            f"SELECT oid FROM pg_catalog.pg_foreign_data_wrapper WHERE fdwname = '{fdw_name}'"
+        )
+        fdw_id = oid[0] if (oid := pg_cursor.fetchone()) else ''
         connection.close()
         return fdw_id
     except Exception:
@@ -136,6 +129,6 @@ def delete_fdw(server, db_name, fdw_name):
                                    server['port'],
                                    server['sslmode'])
     pg_cursor = connection.cursor()
-    pg_cursor.execute("DROP FOREIGN DATA WRAPPER %s CASCADE" % fdw_name)
+    pg_cursor.execute(f"DROP FOREIGN DATA WRAPPER {fdw_name} CASCADE")
     connection.commit()
     connection.close()

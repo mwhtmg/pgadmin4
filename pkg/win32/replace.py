@@ -19,18 +19,15 @@ for o, a in myopts:
         infile = a
     elif o == '-o':
         outfile = a
-    elif o == '-s':
-        searchExp = a
     elif o == '-r':
         replaceExp = a
+    elif o == '-s':
+        searchExp = a
     else:
-        print("Usage: %s -i input -o output" % sys.argv[0])
+        print(f"Usage: {sys.argv[0]} -i input -o output")
 
-# Display input and output file name passed as the args
-
-f1 = open(infile, 'r')
-f2 = open(outfile, 'w')
-for line in f1:
-    f2.write(line.replace(searchExp, replaceExp))
-f1.close()
+with open(infile, 'r') as f1:
+    f2 = open(outfile, 'w')
+    for line in f1:
+        f2.write(line.replace(searchExp, replaceExp))
 f2.close()

@@ -110,8 +110,7 @@ class DataTypeReader:
         """
         # Check if template path is already set or not
         # if not then we will set the template path here
-        manager = conn.manager if not hasattr(self, 'manager') \
-            else self.manager
+        manager = self.manager if hasattr(self, 'manager') else conn.manager
         if not hasattr(self, 'data_type_template_path'):
             self.data_type_template_path = 'datatype/sql/' + (
                 '#{0}#'.format(manager.version)
@@ -140,11 +139,7 @@ class DataTypeReader:
             else:
                 # Max value is 6 for data type like
                 # interval, timestamptz, etc..
-                if typeval == 'D':
-                    max_val = 6
-                else:
-                    max_val = 10
-
+                max_val = 6 if typeval == 'D' else 10
         return min_val, max_val
 
     def get_types(self, conn, condition, add_serials=False, schema_oid=''):
@@ -193,8 +188,6 @@ class DataTypeReader:
 
     @staticmethod
     def get_length_precision(elemoid_or_name):
-        precision = False
-        length = False
         typeval = ''
 
         # Check against PGOID/typename for specific type
@@ -232,13 +225,8 @@ class DataTypeReader:
             else:
                 typeval = ' '
 
-        # Set precision & length/min/max values
-        if typeval == 'P':
-            precision = True
-
-        if precision or typeval in ('L', 'D'):
-            length = True
-
+        precision = typeval == 'P'
+        length = precision or typeval in {'L', 'D'}
         return length, precision, typeval
 
     @staticmethod
@@ -255,20 +243,20 @@ class DataTypeReader:
             _prec = (typmod - 4) & 0xffff
             length += str(_len)
             if _prec is not None:
-                length += ',' + str(_prec)
-        elif (
-            name == 'time' or
-            name == 'timetz' or
-            name == DATATYPE_TIME_WITHOUT_TIMEZONE or
-            name == DATATYPE_TIME_WITH_TIMEZONE or
-            name == 'timestamp' or
-            name == 'timestamptz' or
-            name == DATATYPE_TIMESTAMP_WITHOUT_TIMEZONE or
-            name == DATATYPE_TIMESTAMP_WITH_TIMEZONE or
-            name == 'bit' or
-            name == 'bit varying' or
-            name == 'varbit'
-        ):
+                length += f',{str(_prec)}'
+        elif name in [
+            'time',
+            'timetz',
+            DATATYPE_TIME_WITHOUT_TIMEZONE,
+            DATATYPE_TIME_WITH_TIMEZONE,
+            'timestamp',
+            'timestamptz',
+            DATATYPE_TIMESTAMP_WITHOUT_TIMEZONE,
+            DATATYPE_TIMESTAMP_WITH_TIMEZONE,
+            'bit',
+            'bit varying',
+            'varbit',
+        ]:
             _prec = 0
             _len = typmod
             length += str(_len)
@@ -288,7 +276,7 @@ class DataTypeReader:
             _prec = 0
             length += str(_len)
 
-        if len(length) > 0:
+        if length != "":
             length += ')'
 
         return length
@@ -304,15 +292,15 @@ class DataTypeReader:
         :return: full type value
         """
         if name == 'char' and schema == 'pg_catalog':
-            return '"char"' + array
+            return f'"char"{array}'
         elif name == DATATYPE_TIME_WITH_TIMEZONE:
-            return 'time' + length + ' with time zone' + array
+            return f'time{length} with time zone{array}'
         elif name == DATATYPE_TIME_WITHOUT_TIMEZONE:
-            return 'time' + length + ' without time zone' + array
+            return f'time{length} without time zone{array}'
         elif name == DATATYPE_TIMESTAMP_WITH_TIMEZONE:
-            return 'timestamp' + length + ' with time zone' + array
+            return f'timestamp{length} with time zone{array}'
         elif name == DATATYPE_TIMESTAMP_WITHOUT_TIMEZONE:
-            return 'timestamp' + length + ' without time zone' + array
+            return f'timestamp{length} without time zone{array}'
         else:
             return name + length + array
 
@@ -325,14 +313,12 @@ class DataTypeReader:
         :param schema: schema name for check.
         :return: name
         """
-        if typname.find(schema + '".') >= 0:
-            name = typname[len(schema) + 3]
-        elif typname.find(schema + '.') >= 0:
-            name = typname[len(schema) + 1]
+        if typname.find(f'{schema}".') >= 0:
+            return typname[len(schema) + 3]
+        elif typname.find(f'{schema}.') >= 0:
+            return typname[len(schema) + 1]
         else:
-            name = typname
-
-        return name
+            return typname
 
     @staticmethod
     def get_full_type(nsp, typname, is_dup, numdims, typmod):
@@ -346,8 +332,6 @@ class DataTypeReader:
         schema = nsp if nsp is not None else ''
         name = ''
         array = ''
-        length = ''
-
         name = DataTypeReader._check_schema_in_name(typname, schema)
 
         if name.startswith('_'):
@@ -368,12 +352,8 @@ class DataTypeReader:
                 array += '[]'
                 numdims -= 1
 
-        if typmod != -1:
-            length = DataTypeReader._check_typmod(typmod, name)
-
-        type_value = DataTypeReader._get_full_type_value(name, schema, length,
-                                                         array)
-        return type_value
+        length = DataTypeReader._check_typmod(typmod, name) if typmod != -1 else ''
+        return DataTypeReader._get_full_type_value(name, schema, length, array)
 
     @classmethod
     def parse_type_name(cls, type_name):
@@ -427,16 +407,13 @@ class DataTypeReader:
         :return: length, precision
         """
         t_len, t_prec = None, None
-        if is_tlength and is_precision:
-            match_obj = re.search(r'(\d+),(\d+)', fulltype)
-            if match_obj:
-                t_len = match_obj.group(1)
-                t_prec = match_obj.group(2)
-        elif is_tlength:
-            # If we have length only
-            match_obj = re.search(r'(\d+)', fulltype)
-            if match_obj:
-                t_len = match_obj.group(1)
+        if is_tlength:
+            if is_precision:
+                if match_obj := re.search(r'(\d+),(\d+)', fulltype):
+                    t_len = match_obj[1]
+                    t_prec = match_obj[2]
+            elif match_obj := re.search(r'(\d+)', fulltype):
+                t_len = match_obj[1]
                 t_prec = None
 
         return t_len, t_prec
@@ -474,32 +451,22 @@ def trigger_definition(data):
         data['fires'] = 'AFTER'
 
     # Trigger of type definition
-    if data['tgtype'] & trigger_definition['TRIGGER_TYPE_ROW']:
-        data['is_row_trigger'] = True
-    else:
-        data['is_row_trigger'] = False
-
+    data['is_row_trigger'] = bool(
+        data['tgtype'] & trigger_definition['TRIGGER_TYPE_ROW']
+    )
     # Event definition
-    if data['tgtype'] & trigger_definition['TRIGGER_TYPE_INSERT']:
-        data['evnt_insert'] = True
-    else:
-        data['evnt_insert'] = False
-
-    if data['tgtype'] & trigger_definition['TRIGGER_TYPE_DELETE']:
-        data['evnt_delete'] = True
-    else:
-        data['evnt_delete'] = False
-
-    if data['tgtype'] & trigger_definition['TRIGGER_TYPE_UPDATE']:
-        data['evnt_update'] = True
-    else:
-        data['evnt_update'] = False
-
-    if data['tgtype'] & trigger_definition['TRIGGER_TYPE_TRUNCATE']:
-        data['evnt_truncate'] = True
-    else:
-        data['evnt_truncate'] = False
-
+    data['evnt_insert'] = bool(
+        data['tgtype'] & trigger_definition['TRIGGER_TYPE_INSERT']
+    )
+    data['evnt_delete'] = bool(
+        data['tgtype'] & trigger_definition['TRIGGER_TYPE_DELETE']
+    )
+    data['evnt_update'] = bool(
+        data['tgtype'] & trigger_definition['TRIGGER_TYPE_UPDATE']
+    )
+    data['evnt_truncate'] = bool(
+        data['tgtype'] & trigger_definition['TRIGGER_TYPE_TRUNCATE']
+    )
     return data
 
 
@@ -524,24 +491,24 @@ def parse_rule_definition(res):
             r"((?:ON)\s+(?:[\s\S]+?)"
             r"(?:TO)\s+(?:[\s\S]+?)(?:DO))", data_def)
         if condition_part_match is not None:
-            condition_part = condition_part_match.group(1)
+            condition_part = condition_part_match[1]
 
             condition_match = re.search(
                 r"(?:WHERE)\s+(\([\s\S]*\))\s+(?:DO)", condition_part)
 
             if condition_match is not None:
-                condition = condition_match.group(1)
+                condition = condition_match[1]
                 # also remove enclosing brackets
                 if condition.startswith('(') and condition.endswith(')'):
                     condition = condition[1:-1]
 
-            # Parse data for statements
+                    # Parse data for statements
         statement_match = re.search(
             r"(?:DO\s+)(?:INSTEAD\s+)?([\s\S]*)(?:;)", data_def)
 
         statement = ''
         if statement_match is not None:
-            statement = statement_match.group(1)
+            statement = statement_match[1]
             # also remove enclosing brackets
             if statement.startswith('(') and statement.endswith(')'):
                 statement = statement[1:-1]
@@ -602,7 +569,7 @@ class VacuumSettings:
             if setting_type in VacuumSettings.vacuum_settings[sid]:
                 return VacuumSettings.vacuum_settings[sid][setting_type]
         else:
-            VacuumSettings.vacuum_settings[sid] = dict()
+            VacuumSettings.vacuum_settings[sid] = {}
 
         # returns an array of name & label values
         vacuum_fields = render_template("vacuum_settings/vacuum_fields.json")

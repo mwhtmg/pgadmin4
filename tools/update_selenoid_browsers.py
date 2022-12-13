@@ -35,8 +35,7 @@ def read_command_line():
                         help="the Chrome executable path")
     parser.add_argument("--firefox", metavar="FIREFOX",
                         help="the firefox executable path")
-    args_val = parser.parse_args()
-    return args_val
+    return parser.parse_args()
 
 
 def get_browser_version(browser_name, executable_path):
@@ -62,8 +61,9 @@ def get_browser_version(browser_name, executable_path):
     if browser_name.lower() == "chrome":
         # Check for 'Chrom' not 'Chrome' in case the user is using Chromium.
         if "Chrom" not in version_str:
-            print('The specified Chrome executable output an unexpected '
-                  'version string: {}.'.format(version_str))
+            print(
+                f'The specified Chrome executable output an unexpected version string: {version_str}.'
+            )
             sys.exit(1)
         # On some linux distro `chrome--version` gives output like
         # 'Google Chrome 80.0.3987.132 unknown\n'
@@ -75,14 +75,16 @@ def get_browser_version(browser_name, executable_path):
 
         # Make sure browser version has only 1 decimal point
         if chrome_version.count('.') != 1:
-            print('The specified Chrome executable output an unexpected '
-                  'version string: {}.'.format(version_str))
+            print(
+                f'The specified Chrome executable output an unexpected version string: {version_str}.'
+            )
             sys.exit(1)
         browser_version_val = chrome_version
     elif browser_name.lower() == "firefox":
         if "Firefox" not in version_str:
-            print('The specified Firefox executable output an unexpected '
-                  'version string: {}.'.format(version_str))
+            print(
+                f'The specified Firefox executable output an unexpected version string: {version_str}.'
+            )
             sys.exit(1)
 
         # Some time firefox --version gives output like
@@ -97,13 +99,14 @@ def get_browser_version(browser_name, executable_path):
             firefox_version = '.'.join(
                 version_str.split()[-1].split('.')[:-1])
 
-        if firefox_version.count('.') == 0:
-            firefox_version = firefox_version + '.0'
+        if '.' not in firefox_version:
+            firefox_version += '.0'
 
         # Make sure browser version has only 1 decimal point
         if firefox_version.count('.') != 1:
-            print('The specified Firefox executable output an unexpected '
-                  'version string: {}.'.format(version_str))
+            print(
+                f'The specified Firefox executable output an unexpected version string: {version_str}.'
+            )
             sys.exit(1)
         browser_version_val = firefox_version
     else:
@@ -121,21 +124,20 @@ def check_and_download_vnc_browser_image(browser_name, browser_version):
     :return:true if browser image is available & downloaded else false
     """
     res = requests.get(
-        'https://registry.hub.docker.com/v2/repositories/selenoid/vnc_' +
-        browser_name + '/tags/')
+        f'https://registry.hub.docker.com/v2/repositories/selenoid/vnc_{browser_name}/tags/'
+    )
     res = res.json()
     version_tag = []
     if len(res['results']) > 0:
-        for result in res['results']:
-            if 'name' in result:
-                version_tag.append(result['name'])
-    vnc_image_available = False
-    image_name = 'vnc_' + browser_name + ':' + browser_version
+        version_tag.extend(
+            result['name'] for result in res['results'] if 'name' in result
+        )
+    image_name = f'vnc_{browser_name}:{browser_version}'
 
+    vnc_image_available = False
     for idx, tag in enumerate(version_tag):
         if browser_version == tag:
-            command = 'docker pull selenoid/vnc_' + browser_name + ':' \
-                      + browser_version
+            command = f'docker pull selenoid/vnc_{browser_name}:{browser_version}'
             print(' VNC image is available & downloading now... {0}'.format(
                 command))
             try:
@@ -201,9 +203,14 @@ def edit_browsers_json(browser_name, browser_version):
             file_edited = True
         else:
             data_to_insert = dict(
-                {browser_version: {
-                    'image': 'selenoid/vnc_chrome:' + browser_version,
-                    'port': '4444', 'path': '/'}})
+                {
+                    browser_version: {
+                        'image': f'selenoid/vnc_chrome:{browser_version}',
+                        'port': '4444',
+                        'path': '/',
+                    }
+                }
+            )
             (existing_data['chrome']['versions']).update(data_to_insert)
             updated_data = existing_data
             print(updated_data)
@@ -216,9 +223,14 @@ def edit_browsers_json(browser_name, browser_version):
             file_edited = True
         else:
             data_to_insert = dict(
-                {browser_version: {
-                    'image': 'selenoid/vnc_firefox:' + browser_version,
-                    'port': '4444', 'path': '/wd/hub'}})
+                {
+                    browser_version: {
+                        'image': f'selenoid/vnc_firefox:{browser_version}',
+                        'port': '4444',
+                        'path': '/wd/hub',
+                    }
+                }
+            )
             (existing_data['firefox']['versions']).update(data_to_insert)
             updated_data = existing_data
     else:
@@ -242,7 +254,7 @@ args = vars(read_command_line())
 
 # Get path path for browsers.json
 user_home_dir = os.getenv("HOME")
-file_path = user_home_dir + '/.aerokube/selenoid/browsers.json'
+file_path = f'{user_home_dir}/.aerokube/selenoid/browsers.json'
 print("***** Updating '{0}' for new browser versions.*****".format(file_path))
 
 # Iterate over arguments passed
@@ -256,12 +268,9 @@ for browser, executable_path in args.items():
             " Browser version for {0} is {1} in current executable path ".
             format(browser_name, browser_version))
 
-        # Download vnc browser image.
-        download_new_image = check_and_download_vnc_browser_image(
-            browser_name, browser_version)
-
-        # If browser vnc image is available, then edit browsers.json
-        if download_new_image:
+        if download_new_image := check_and_download_vnc_browser_image(
+            browser_name, browser_version
+        ):
             if edit_browsers_json(browser_name, browser_version):
                 print(
                     " File 'browsers.json' is updated for {0} - {1} \n".format(

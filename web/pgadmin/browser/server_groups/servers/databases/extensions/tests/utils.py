@@ -15,12 +15,7 @@ from regression.python_test_utils.test_utils import get_db_connection
 
 
 def get_extension_data(schema_name):
-    data = {
-        "name": "cube",
-        "relocatable": "true",
-        "schema": schema_name
-    }
-    return data
+    return {"name": "cube", "relocatable": "true", "schema": schema_name}
 
 
 def create_extension(server, db_name, extension_name, schema_name):
@@ -48,17 +43,15 @@ def create_extension(server, db_name, extension_name, schema_name):
         connection.set_isolation_level(0)
         pg_cursor = connection.cursor()
         pg_cursor.execute(
-            '''CREATE EXTENSION "%s" SCHEMA "%s"''' % (extension_name,
-                                                       schema_name))
+            f'''CREATE EXTENSION "{extension_name}" SCHEMA "{schema_name}"'''
+        )
         connection.set_isolation_level(old_isolation_level)
         connection.commit()
         # Get 'oid' from newly created extension
-        pg_cursor.execute("SELECT oid FROM pg_catalog.pg_extension "
-                          "WHERE extname = '%s'" % extension_name)
-        oid = pg_cursor.fetchone()
-        extension_id = ''
-        if oid:
-            extension_id = oid[0]
+        pg_cursor.execute(
+            f"SELECT oid FROM pg_catalog.pg_extension WHERE extname = '{extension_name}'"
+        )
+        extension_id = oid[0] if (oid := pg_cursor.fetchone()) else ''
         connection.close()
         return extension_id
     except Exception:
@@ -115,11 +108,10 @@ def drop_extension(server, db_name, extension_name):
                                        server['sslmode'])
         pg_cursor = connection.cursor()
         pg_cursor.execute(
-            "SELECT * FROM pg_catalog.pg_extension WHERE extname='%s'"
-            % extension_name)
+            f"SELECT * FROM pg_catalog.pg_extension WHERE extname='{extension_name}'"
+        )
         if pg_cursor.fetchall():
-            pg_cursor.execute(
-                "DROP EXTENSION %s CASCADE" % extension_name)
+            pg_cursor.execute(f"DROP EXTENSION {extension_name} CASCADE")
             connection.commit()
         connection.close()
     except Exception:

@@ -42,7 +42,7 @@ class FTSConfiguraionAddTestCase(BaseTestGenerator):
         self.server_id = schema_data['server_id']
         self.db_id = schema_data['db_id']
         self.db_name = parent_node_dict["database"][-1]["db_name"]
-        self.fts_parser_name = "fts_parser_%s" % str(uuid.uuid4())[1:8]
+        self.fts_parser_name = f"fts_parser_{str(uuid.uuid4())[1:8]}"
         self.fts_parser_id = fts_parser_utils.create_fts_parser(
             self.server, self.db_name, self.schema_name, self.fts_parser_name)
 
@@ -54,7 +54,7 @@ class FTSConfiguraionAddTestCase(BaseTestGenerator):
                                                  self.server_id,
                                                  self.db_id)
 
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
 
         schema_response = schema_utils.verify_schemas(self.server,
@@ -63,15 +63,14 @@ class FTSConfiguraionAddTestCase(BaseTestGenerator):
         if not schema_response:
             raise Exception("Could not find the schema.")
 
-        self.fts_conf_name = "fts_conf_%s" % str(uuid.uuid4())[1:8]
-        data = \
-            {
-                "name": self.fts_conf_name,
-                "owner": self.server["username"],
-                "prsname": "%s.%s" % (self.schema_name, self.fts_parser_name),
-                "schema": self.schema_id,
-                "tokens": []
-            }
+        self.fts_conf_name = f"fts_conf_{str(uuid.uuid4())[1:8]}"
+        data = {
+            "name": self.fts_conf_name,
+            "owner": self.server["username"],
+            "prsname": f"{self.schema_name}.{self.fts_parser_name}",
+            "schema": self.schema_id,
+            "tokens": [],
+        }
 
         response = self.tester.post(
             self.url + str(utils.SERVER_GROUP) + '/' +

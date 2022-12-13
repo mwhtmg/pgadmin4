@@ -217,24 +217,24 @@ def upgrade():
             os.urandom(32)).decode()
         db.engine.execute(sql)
 
-        if hasattr(config, 'SECRET_KEY'):
-            sql = "INSERT INTO keys (name, value) VALUES ('SECRET_KEY', '%s')" % config.SECRET_KEY
-        else:
-            sql = "INSERT INTO keys (name, value) VALUES ('SECRET_KEY', '%s')" % base64.urlsafe_b64encode(
-                os.urandom(32)).decode()
+        sql = (
+            f"INSERT INTO keys (name, value) VALUES ('SECRET_KEY', '{config.SECRET_KEY}')"
+            if hasattr(config, 'SECRET_KEY')
+            else f"INSERT INTO keys (name, value) VALUES ('SECRET_KEY', '{base64.urlsafe_b64encode(os.urandom(32)).decode()}')"
+        )
         db.engine.execute(sql)
 
         # If SECURITY_PASSWORD_SALT is not in the config, but we're upgrading, then it must (unless the
         # user edited the main config - which they shouldn't have done) have been at it's default
         # value, so we'll use that. Otherwise, use whatever we can find in the config.
         if hasattr(config, 'SECURITY_PASSWORD_SALT'):
-            sql = "INSERT INTO keys (name, value) VALUES ('SECURITY_PASSWORD_SALT', '%s')" % config.SECURITY_PASSWORD_SALT
+            sql = f"INSERT INTO keys (name, value) VALUES ('SECURITY_PASSWORD_SALT', '{config.SECURITY_PASSWORD_SALT}')"
         else:
             sql = "INSERT INTO keys (name, value) VALUES ('SECURITY_PASSWORD_SALT', 'SuperSecret3')"
         db.engine.execute(sql)
 
     db.engine.execute(
-        'UPDATE version set value="%s" WHERE name = "ConfigDB"' % config.SETTINGS_SCHEMA_VERSION
+        f'UPDATE version set value="{config.SETTINGS_SCHEMA_VERSION}" WHERE name = "ConfigDB"'
     )
     # ### end Alembic commands ###
 

@@ -29,11 +29,11 @@ def get_my_ip():
 
     ip = ipaddress.ip_address(external_ip)
     if isinstance(ip, ipaddress.IPv4Address):
-        return '{}/{}'.format(external_ip, 32)
+        return f'{external_ip}/32'
     elif isinstance(ip, ipaddress.IPv6Address):
-        return '{}/{}'.format(external_ip, 128)
+        return f'{external_ip}/128'
 
-    return '{}/{}'.format(external_ip, 32)
+    return f'{external_ip}/32'
 
 
 def get_random_id():

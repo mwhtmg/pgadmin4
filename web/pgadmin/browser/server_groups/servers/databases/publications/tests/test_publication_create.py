@@ -48,33 +48,31 @@ class PublicationsAddTestCase(BaseTestGenerator):
                 "Could not connect to database to add a publication.")
 
         if self.is_positive_test and hasattr(self, 'few_tables'):
-            self.table_name = "table_column_%s" % (str(uuid.uuid4())[1:8])
+            self.table_name = f"table_column_{str(uuid.uuid4())[1:8]}"
             self.table_id = tables_utils. \
-                create_table(self.server, self.db_name, self.schema_name,
+                    create_table(self.server, self.db_name, self.schema_name,
                              self.table_name)
 
             self.test_data['pubtable'] = publication_utils.get_tables(self)
 
     def runTest(self):
         """This function will publication."""
-        self.test_data['name'] = \
-            "test_publication_add_%s" % (str(uuid.uuid4())[1:8])
+        self.test_data['name'] = f"test_publication_add_{str(uuid.uuid4())[1:8]}"
 
         data = self.test_data
         if self.is_positive_test:
             response = self.create_publication()
-        else:
-            if hasattr(self, 'without_name'):
-                del data["name"]
+        elif hasattr(self, 'without_name'):
+            del data["name"]
+            response = self.create_publication()
+        elif hasattr(self, 'error_creating_publication'):
+            with patch(self.mock_data["function_name"],
+                       return_value=eval(self.mock_data["return_value"])):
                 response = self.create_publication()
-            elif hasattr(self, 'error_creating_publication'):
-                with patch(self.mock_data["function_name"],
-                           return_value=eval(self.mock_data["return_value"])):
-                    response = self.create_publication()
-            else:
-                with patch(self.mock_data["function_name"],
-                           side_effect=self.mock_data["return_value"]):
-                    response = self.create_publication()
+        else:
+            with patch(self.mock_data["function_name"],
+                       side_effect=self.mock_data["return_value"]):
+                response = self.create_publication()
         self.assertEqual(response.status_code,
                          self.expected_data["status_code"])
 

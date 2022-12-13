@@ -17,7 +17,7 @@ from regression.python_test_utils import test_utils as utils
 
 # Load test data from json file.
 CURRENT_PATH = os.path.dirname(os.path.realpath(__file__))
-with open(CURRENT_PATH + "/foreign_tables_test_data.json") as data_file:
+with open(f"{CURRENT_PATH}/foreign_tables_test_data.json") as data_file:
     test_cases = json.load(data_file)
 
 file_name = os.path.basename(__file__)
@@ -76,9 +76,10 @@ def create_foreign_table(server, db_name, schema_name, fsrv_name,
     """
 
     try:
-        query = "CREATE FOREIGN TABLE " + schema_name + "." + \
-                foreign_table_name + "(emp_name text NULL) SERVER %s" % \
-                fsrv_name
+        query = (
+            f"CREATE FOREIGN TABLE {schema_name}.{foreign_table_name}"
+            + f"(emp_name text NULL) SERVER {fsrv_name}"
+        )
 
         if sql_query is not None:
             query = eval(sql_query)
@@ -96,15 +97,10 @@ def create_foreign_table(server, db_name, schema_name, fsrv_name,
 
         # Get 'oid' from newly created foreign table
         pg_cursor.execute(
-            "SELECT ftrelid FROM pg_catalog.pg_foreign_table WHERE ftserver = "
-            "(SELECT oid FROM pg_catalog.pg_foreign_server "
-            "WHERE srvname = '%s') "
-            "ORDER BY ftrelid ASC limit 1" % fsrv_name)
+            f"SELECT ftrelid FROM pg_catalog.pg_foreign_table WHERE ftserver = (SELECT oid FROM pg_catalog.pg_foreign_server WHERE srvname = '{fsrv_name}') ORDER BY ftrelid ASC limit 1"
+        )
 
-        oid = pg_cursor.fetchone()
-        ft_id = ''
-        if oid:
-            ft_id = oid[0]
+        ft_id = oid[0] if (oid := pg_cursor.fetchone()) else ''
         connection.close()
         return ft_id
     except Exception:
@@ -154,6 +150,6 @@ def delete_foregin_table(server, db_name, schema_name, ft_name):
                                    server['port'],
                                    server['sslmode'])
     pg_cursor = connection.cursor()
-    pg_cursor.execute("DROP FOREIGN TABLE %s.%s" % (schema_name, ft_name))
+    pg_cursor.execute(f"DROP FOREIGN TABLE {schema_name}.{ft_name}")
     connection.commit()
     connection.close()

@@ -106,7 +106,7 @@ class TOTPAuthenticator(BaseMFAuth):
         Raises:
             ValidationException: Raises when code is not valid
         """
-        code = kwargs.get('code', None)
+        code = kwargs.get('code')
         totp = TOTPAuthenticator.__create_topt_for_currentuser()
 
         if totp.verify(code) is False:

@@ -56,7 +56,7 @@ class FDWDPutTestCase(BaseTestGenerator):
                                                  utils.SERVER_GROUP,
                                                  self.server_id,
                                                  self.db_id)
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
         fdw_response = fdw_utils.verify_fdw(self.server, self.db_name,
                                             self.fdw_name)
@@ -67,11 +67,10 @@ class FDWDPutTestCase(BaseTestGenerator):
         if self.is_positive_test:
             put_response = self.update_fdw()
 
-        else:
-            if hasattr(self, "internal_server_error"):
-                with patch(self.mock_data["function_name"],
-                           return_value=eval(self.mock_data["return_value"])):
-                    put_response = self.update_fdw()
+        elif hasattr(self, "internal_server_error"):
+            with patch(self.mock_data["function_name"],
+                       return_value=eval(self.mock_data["return_value"])):
+                put_response = self.update_fdw()
 
         self.assertEqual(put_response.status_code,
                          self.expected_data["status_code"])

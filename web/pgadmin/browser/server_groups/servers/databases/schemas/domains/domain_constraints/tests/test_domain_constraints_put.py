@@ -34,12 +34,11 @@ class DomainConstraintPutTestCase(BaseTestGenerator):
         self.schema_name = schema_info["schema_name"]
         self.server_id = schema_info["server_id"]
         self.db_id = schema_info["db_id"]
-        self.domain_name = "domain_%s" % (str(uuid.uuid4())[1:8])
-        self.domain_con_name = \
-            "test_domain_con_upd_%s" % (str(uuid.uuid4())[1:8])
+        self.domain_name = f"domain_{str(uuid.uuid4())[1:8]}"
+        self.domain_con_name = f"test_domain_con_upd_{str(uuid.uuid4())[1:8]}"
 
         self.domain_info = \
-            domain_cons_utils.create_domain(
+                domain_cons_utils.create_domain(
                 self.server,
                 self.db_name,
                 self.schema_name,
@@ -47,7 +46,7 @@ class DomainConstraintPutTestCase(BaseTestGenerator):
                 self.domain_name)
 
         self.domain_constraint_id = \
-            domain_cons_utils.create_domain_constraints(
+                domain_cons_utils.create_domain_constraints(
                 self.server,
                 self.db_name,
                 self.schema_name,
@@ -101,11 +100,10 @@ class DomainConstraintPutTestCase(BaseTestGenerator):
         if self.is_positive_test:
             response = self.update_domain_constraint()
 
-        else:
-            if hasattr(self, "error_in_db"):
-                with patch(self.mock_data["function_name"],
-                           side_effect=eval(self.mock_data["return_value"])):
-                    response = self.update_domain_constraint()
+        elif hasattr(self, "error_in_db"):
+            with patch(self.mock_data["function_name"],
+                       side_effect=eval(self.mock_data["return_value"])):
+                response = self.update_domain_constraint()
 
         actual_response_code = response.status_code
         expected_response_code = self.expected_data['status_code']

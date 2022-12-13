@@ -38,8 +38,8 @@ class UserMappingNodesTestCase(BaseTestGenerator):
         self.db_id = self.schema_data['db_id']
         self.db_name = parent_node_dict["database"][-1]["db_name"]
         self.schema_name = self.schema_data['schema_name']
-        self.fdw_name = "fdw_%s" % (str(uuid.uuid4())[1:8])
-        self.fsrv_name = "fsrv_%s" % (str(uuid.uuid4())[1:8])
+        self.fdw_name = f"fdw_{str(uuid.uuid4())[1:8]}"
+        self.fsrv_name = f"fsrv_{str(uuid.uuid4())[1:8]}"
         self.fdw_id = fdw_utils.create_fdw(self.server, self.db_name,
                                            self.fdw_name)
         self.fsrv_id = fsrv_utils.create_fsrv(self.server, self.db_name,
@@ -66,7 +66,7 @@ class UserMappingNodesTestCase(BaseTestGenerator):
                                                  utils.SERVER_GROUP,
                                                  self.server_id,
                                                  self.db_id)
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
         fdw_response = fdw_utils.verify_fdw(self.server, self.db_name,
                                             self.fdw_name)
@@ -82,18 +82,18 @@ class UserMappingNodesTestCase(BaseTestGenerator):
             raise Exception("Could not find user mapping.")
 
         if self.is_positive_test:
-            if hasattr(self, "node"):
-                response = self.get_user_mapping_node(self.um_id)
-            else:
-                response = self.get_user_mapping_node("")
-        else:
-            if hasattr(self, "internal_server_error"):
-                with patch(self.mock_data["function_name"],
-                           return_value=eval(self.mock_data["return_value"])):
-                    if hasattr(self, "node"):
-                        response = self.get_user_mapping_node(self.um_id)
-                    else:
-                        response = self.get_user_mapping_node("")
+            response = (
+                self.get_user_mapping_node(self.um_id)
+                if hasattr(self, "node")
+                else self.get_user_mapping_node("")
+            )
+        elif hasattr(self, "internal_server_error"):
+            with patch(self.mock_data["function_name"],
+                       return_value=eval(self.mock_data["return_value"])):
+                if hasattr(self, "node"):
+                    response = self.get_user_mapping_node(self.um_id)
+                else:
+                    response = self.get_user_mapping_node("")
 
         actual_response_code = response.status_code
         expected_response_code = self.expected_data['status_code']

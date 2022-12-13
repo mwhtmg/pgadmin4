@@ -34,19 +34,18 @@ class DomainConstraintGetSqlTestCase(BaseTestGenerator):
         self.schema_name = schema_info["schema_name"]
         self.server_id = schema_info["server_id"]
         self.db_id = schema_info["db_id"]
-        self.domain_name = "domain_%s" % (str(uuid.uuid4())[1:8])
-        self.domain_con_name = \
-            "test_domain_con_sql_%s" % (str(uuid.uuid4())[1:8])
+        self.domain_name = f"domain_{str(uuid.uuid4())[1:8]}"
+        self.domain_con_name = f"test_domain_con_sql_{str(uuid.uuid4())[1:8]}"
 
         self.domain_info = \
-            domain_cons_utils.create_domain(self.server,
+                domain_cons_utils.create_domain(self.server,
                                             self.db_name,
                                             self.schema_name,
                                             self.schema_id,
                                             self.domain_name)
 
         self.domain_constraint_id = \
-            domain_cons_utils.create_domain_constraints(self.server,
+                domain_cons_utils.create_domain_constraints(self.server,
                                                         self.db_name,
                                                         self.schema_name,
                                                         self.domain_name,

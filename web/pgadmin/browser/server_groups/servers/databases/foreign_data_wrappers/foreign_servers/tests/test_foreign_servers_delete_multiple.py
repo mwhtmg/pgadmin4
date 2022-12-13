@@ -34,9 +34,11 @@ class ForeignServerDeleteMultipleTestCase(BaseTestGenerator):
         self.db_id = self.schema_data['db_id']
         self.db_name = parent_node_dict["database"][-1]["db_name"]
         self.schema_name = self.schema_data['schema_name']
-        self.fdw_name = "test_fdw_%s" % (str(uuid.uuid4())[1:8])
-        self.fsrv_names = ["test_fsrv_%s" % (str(uuid.uuid4())[1:8]),
-                           "test_fsrv_%s" % (str(uuid.uuid4())[1:8])]
+        self.fdw_name = f"test_fdw_{str(uuid.uuid4())[1:8]}"
+        self.fsrv_names = [
+            f"test_fsrv_{str(uuid.uuid4())[1:8]}",
+            f"test_fsrv_{str(uuid.uuid4())[1:8]}",
+        ]
 
         self.fdw_id = fdw_utils.create_fdw(self.server, self.db_name,
                                            self.fdw_name)
@@ -68,7 +70,7 @@ class ForeignServerDeleteMultipleTestCase(BaseTestGenerator):
                                                  utils.SERVER_GROUP,
                                                  self.server_id,
                                                  self.db_id)
-        if not db_con["info"] == "Database connected.":
+        if db_con["info"] != "Database connected.":
             raise Exception("Could not connect to database.")
         fdw_response = fdw_utils.verify_fdw(self.server, self.db_name,
                                             self.fdw_name)

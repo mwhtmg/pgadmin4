@@ -53,8 +53,9 @@ def init_app(app: Flask):
         app (Flask): Flask Application object
     """
 
-    if getattr(config, "SERVER_MODE", False) is False and \
-            getattr(config, "MFA_ENABLED", False) is False:
+    if not getattr(config, "SERVER_MODE", False) and not getattr(
+        config, "MFA_ENABLED", False
+    ):
         return
 
     MultiFactorAuthRegistry.load_modules(app)
@@ -99,8 +100,9 @@ def init_app(app: Flask):
         Also - log a warning message about no valid authentication method found
         during initialization.
         """
-        if getattr(config, 'MFA_ENABLED', False) is True and \
-                getattr(config, 'SERVER_MODE', False) is True:
+        if getattr(config, 'MFA_ENABLED', False) and getattr(
+            config, 'SERVER_MODE', False
+        ):
             app.logger.warning(_(
                 "No valid multi-factor authentication found, hence - "
                 "disabling it."

@@ -63,7 +63,7 @@ def get_keywords_pg_code(file_urls=PG_CODES_URLS,
     rel_tag = get_release_tag()
     for file_url in file_urls:
         if "hb" not in file_url:
-            file_url = file_url + ";hb=" + rel_tag
+            file_url = f"{file_url};hb={rel_tag}"
         resp_text = get_file_from_url(file_url)
 
         # Sample entry - PG_KEYWORD("begin", K_BEGIN, RESERVED_KEYWORD)
@@ -75,10 +75,7 @@ def get_keywords_pg_code(file_urls=PG_CODES_URLS,
 def get_keywords_pg_docs(docs_url=PG_SQL_DOCS_URL,
                          keyword_regex=PG_SQL_DOCS_REGEX):
     resp_text = get_file_from_url(docs_url)
-    # Sample entry - <code class="token">ABORT</code>
-    keywords = extract_keywords(resp_text, keyword_regex)
-
-    return keywords
+    return extract_keywords(resp_text, keyword_regex)
 
 
 def get_all_keywords():

@@ -34,15 +34,14 @@ class DomainReverseEngineeredSQLTestCase(BaseTestGenerator):
         self.schema_info = parent_node_dict["schema"][-1]
         self.schema_name = self.schema_info["schema_name"]
         self.schema_id = self.schema_info["schema_id"]
-        self.test_data['domain_name'] = 'domain_get_%s' % (
-                                        str(uuid.uuid4())[1:8])
+        self.test_data['domain_name'] = f'domain_get_{str(uuid.uuid4())[1:8]}'
         if hasattr(self, "Domain_Reverse_Engineered_SQL_with_char"):
             self.test_data['domain_sql'] = 'AS "char";'
 
         if hasattr(self,
            "Domain_Reverse_Engineered_SQL_with_Length_Precision_and_Default"):
             self.test_data['domain_sql'] =\
-                'AS numeric(12,2) DEFAULT 12 NOT NULL;'
+                    'AS numeric(12,2) DEFAULT 12 NOT NULL;'
 
         if hasattr(self, "Domain_Reverse_Engineered_SQL_with_Length"):
             self.test_data['domain_sql'] = 'AS interval(6);'
@@ -52,7 +51,7 @@ class DomainReverseEngineeredSQLTestCase(BaseTestGenerator):
             self.test_data['domain_sql'] = 'AS "char";'
 
         self.domain_info =\
-            domain_utils.create_domain(self.server,
+                domain_utils.create_domain(self.server,
                                        self.db_name,
                                        self.schema_name,
                                        self.schema_id,

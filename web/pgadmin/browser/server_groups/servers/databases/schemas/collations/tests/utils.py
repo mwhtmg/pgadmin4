@@ -17,7 +17,7 @@ import os
 from regression.python_test_utils import test_utils as utils
 
 CURRENT_PATH = os.path.dirname(os.path.realpath(__file__))
-with open(CURRENT_PATH + "/collations_test_data.json") as data_file:
+with open(f"{CURRENT_PATH}/collations_test_data.json") as data_file:
     test_cases = json.load(data_file)
 
 
@@ -31,8 +31,9 @@ def create_collation(server, schema_name, coll_name, db_name):
                                              server['port'],
                                              server['sslmode'])
         pg_cursor = connection.cursor()
-        pg_cursor.execute('CREATE COLLATION %s.%s FROM pg_catalog."C"' %
-                          (schema_name, coll_name))
+        pg_cursor.execute(
+            f'CREATE COLLATION {schema_name}.{coll_name} FROM pg_catalog."C"'
+        )
         connection.commit()
 
         # Get 'oid' from newly created database

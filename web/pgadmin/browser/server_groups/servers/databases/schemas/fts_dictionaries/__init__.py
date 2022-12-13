@@ -298,7 +298,6 @@ class FtsDictionaryView(PGChildNodeView, SchemaDiffObjectCompare):
             scid: Schema Id
         """
 
-        res = []
         sql = render_template(
             "/".join([self.template_path, self._NODES_SQL]),
             scid=scid
@@ -307,15 +306,12 @@ class FtsDictionaryView(PGChildNodeView, SchemaDiffObjectCompare):
         if not status:
             return internal_server_error(errormsg=rset)
 
-        for row in rset['rows']:
-            res.append(
-                self.blueprint.generate_browser_node(
-                    row['oid'],
-                    scid,
-                    row['name'],
-                    icon="icon-fts_dictionary"
-                ))
-
+        res = [
+            self.blueprint.generate_browser_node(
+                row['oid'], scid, row['name'], icon="icon-fts_dictionary"
+            )
+            for row in rset['rows']
+        ]
         return make_json_response(
             data=res,
             status=200
@@ -369,13 +365,7 @@ class FtsDictionaryView(PGChildNodeView, SchemaDiffObjectCompare):
             dcid: fts dictionary id
         """
         status, res = self._fetch_properties(scid, dcid)
-        if not status:
-            return res
-
-        return ajax_response(
-            response=res,
-            status=200
-        )
+        return ajax_response(response=res, status=200) if status else res
 
     def _fetch_properties(self, scid, dcid):
         """
@@ -435,9 +425,7 @@ class FtsDictionaryView(PGChildNodeView, SchemaDiffObjectCompare):
             'name'
         ]
 
-        data = request.form if request.form else json.loads(
-            request.data, encoding='utf-8'
-        )
+        data = request.form or json.loads(request.data, encoding='utf-8')
         for arg in required_args:
             if arg not in data:
                 return make_json_response(
@@ -479,16 +467,14 @@ class FtsDictionaryView(PGChildNodeView, SchemaDiffObjectCompare):
             scid=data['schema']
         )
         status, dcid = self.conn.execute_scalar(sql)
-        if not status:
-            return internal_server_error(errormsg=dcid)
-
-        return jsonify(
-            node=self.blueprint.generate_browser_node(
-                dcid,
-                data['schema'],
-                data['name'],
-                icon="icon-fts_dictionary"
+        return (
+            jsonify(
+                node=self.blueprint.generate_browser_node(
+                    dcid, data['schema'], data['name'], icon="icon-fts_dictionary"
+                )
             )
+            if status
+            else internal_server_error(errormsg=dcid)
         )
 
     @check_precondition
@@ -501,9 +487,7 @@ class FtsDictionaryView(PGChildNodeView, SchemaDiffObjectCompare):
         :param scid: schema id
         :param dcid: fts dictionary id
         """
-        data = request.form if request.form else json.loads(
-            request.data, encoding='utf-8'
-        )
+        data = request.form or json.loads(request.data, encoding='utf-8')
 
         # Fetch sql query to update fts dictionary
         sql, name = self.get_sql(gid, sid, did, scid, data, dcid)
@@ -533,10 +517,7 @@ class FtsDictionaryView(PGChildNodeView, SchemaDiffObjectCompare):
 
         return jsonify(
             node=self.blueprint.generate_browser_node(
-                dcid,
-                res['rows'][0]['schema'],
-                name,
-                icon="icon-%s" % self.node_type
+                dcid, res['rows'][0]['schema'], name, icon=f"icon-{self.node_type}"
             )
         )
 
@@ -552,9 +533,7 @@ class FtsDictionaryView(PGChildNodeView, SchemaDiffObjectCompare):
         :param only_sql: Return only sql if True
         """
         if dcid is None:
-            data = request.form if request.form else json.loads(
-                request.data, encoding='utf-8'
-            )
+            data = request.form or json.loads(request.data, encoding='utf-8')
         else:
             data = {'ids': [dcid]}
 
@@ -624,10 +603,7 @@ class FtsDictionaryView(PGChildNodeView, SchemaDiffObjectCompare):
             try:
                 # comments should be taken as is because if user enters a
                 # json comment it is parsed by loads which should not happen
-                if k in ('description',):
-                    data[k] = v
-                else:
-                    data[k] = json.loads(v, encoding='utf-8')
+                data[k] = v if k in ('description',) else json.loads(v, encoding='utf-8')
             except ValueError:
                 data[k] = v
 
@@ -656,19 +632,19 @@ class FtsDictionaryView(PGChildNodeView, SchemaDiffObjectCompare):
         new_data = data.copy()
         new_data['schema'] = schema
 
-        if (
-            'template' in new_data and
-            'name' in new_data and
-            'schema' in new_data
-        ):
-            sql = render_template("/".join([self.template_path,
-                                            self._CREATE_SQL]),
-                                  data=new_data,
-                                  conn=self.conn
-                                  )
-        else:
-            sql = "-- definition incomplete"
-        return sql
+        return (
+            render_template(
+                "/".join([self.template_path, self._CREATE_SQL]),
+                data=new_data,
+                conn=self.conn,
+            )
+            if (
+                'template' in new_data
+                and 'name' in new_data
+                and 'schema' in new_data
+            )
+            else "-- definition incomplete"
+        )
 
     def _check_template_name_and_schema_name(self, data, old_data):
         """
@@ -806,7 +782,7 @@ class FtsDictionaryView(PGChildNodeView, SchemaDiffObjectCompare):
         :param json_resp: True then return json response
         """
         json_resp = kwargs.get('json_resp', True)
-        target_schema = kwargs.get('target_schema', None)
+        target_schema = kwargs.get('target_schema')
 
         sql = render_template(
             "/".join([self.template_path, self._PROPERTIES_SQL]),
@@ -825,7 +801,7 @@ class FtsDictionaryView(PGChildNodeView, SchemaDiffObjectCompare):
 
         # Handle templates and its schema name properly
         if res['rows'][0]['template_schema'] is not None and \
-                res['rows'][0]['template_schema'] != "pg_catalog":
+                    res['rows'][0]['template_schema'] != "pg_catalog":
             res['rows'][0]['template'] = self.qtIdent(
                 self.conn, res['rows'][0]['template_schema'],
                 res['rows'][0]['template']
@@ -866,10 +842,7 @@ class FtsDictionaryView(PGChildNodeView, SchemaDiffObjectCompare):
 
         sql = sql_header + sql
 
-        if not json_resp:
-            return sql
-
-        return ajax_response(response=sql.strip('\n'))
+        return ajax_response(response=sql.strip('\n')) if json_resp else sql
 
     @check_precondition
     def dependents(self, gid, sid, did, scid, dcid):
@@ -920,7 +893,7 @@ class FtsDictionaryView(PGChildNodeView, SchemaDiffObjectCompare):
         :param scid: Schema Id
         :return:
         """
-        res = dict()
+        res = {}
         SQL = render_template("/".join([self.template_path,
                                         self._NODES_SQL]), scid=scid,
                               schema_diff=True)
@@ -946,23 +919,22 @@ class FtsDictionaryView(PGChildNodeView, SchemaDiffObjectCompare):
         did = kwargs.get('did')
         scid = kwargs.get('scid')
         oid = kwargs.get('oid')
-        data = kwargs.get('data', None)
+        data = kwargs.get('data')
         drop_sql = kwargs.get('drop_sql', False)
-        target_schema = kwargs.get('target_schema', None)
+        target_schema = kwargs.get('target_schema')
 
         if data:
             sql, name = self.get_sql(gid=gid, sid=sid, did=did, scid=scid,
                                      data=data, dcid=oid)
+        elif drop_sql:
+            sql = self.delete(gid=gid, sid=sid, did=did,
+                              scid=scid, dcid=oid, only_sql=True)
+        elif target_schema:
+            sql = self.sql(gid=gid, sid=sid, did=did, scid=scid, dcid=oid,
+                           target_schema=target_schema, json_resp=False)
         else:
-            if drop_sql:
-                sql = self.delete(gid=gid, sid=sid, did=did,
-                                  scid=scid, dcid=oid, only_sql=True)
-            elif target_schema:
-                sql = self.sql(gid=gid, sid=sid, did=did, scid=scid, dcid=oid,
-                               target_schema=target_schema, json_resp=False)
-            else:
-                sql = self.sql(gid=gid, sid=sid, did=did, scid=scid, dcid=oid,
-                               json_resp=False)
+            sql = self.sql(gid=gid, sid=sid, did=did, scid=scid, dcid=oid,
+                           json_resp=False)
         return sql
 
 

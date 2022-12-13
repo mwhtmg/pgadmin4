@@ -34,8 +34,10 @@ class DomainDeleteMultipleTestCase(BaseTestGenerator):
         self.schema_info = parent_node_dict["schema"][-1]
         self.schema_name = self.schema_info["schema_name"]
         self.schema_id = self.schema_info["schema_id"]
-        self.domain_names = ["domain_delete_%s" % (str(uuid.uuid4())[1:8]),
-                             "domain_delete_%s" % (str(uuid.uuid4())[1:8])]
+        self.domain_names = [
+            f"domain_delete_{str(uuid.uuid4())[1:8]}",
+            f"domain_delete_{str(uuid.uuid4())[1:8]}",
+        ]
         self.domain_infos = [domain_utils.create_domain(self.server,
                                                         self.db_name,
                                                         self.schema_name,

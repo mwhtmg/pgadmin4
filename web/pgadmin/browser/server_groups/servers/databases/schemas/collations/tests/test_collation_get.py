@@ -33,7 +33,7 @@ class CollationGetTestCase(BaseTestGenerator):
         self.db_name = parent_node_dict["database"][-1]["db_name"]
         self.server_id = self.schema_info["server_id"]
         self.db_id = self.schema_info["db_id"]
-        self.coll_name = "collation_get_%s" % str(uuid.uuid4())[1:8]
+        self.coll_name = f"collation_get_{str(uuid.uuid4())[1:8]}"
         self.collation = collation_utils.create_collation(self.server,
                                                           self.schema_name,
                                                           self.coll_name,

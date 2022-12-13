@@ -343,13 +343,13 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
         if key == 'inherits':
             # Convert Table ids from unicode/string to int
             # and make tuple for 'IN' query.
-            inherits = tuple([int(x) for x in data[key]])
+            inherits = tuple(int(x) for x in data[key])
 
             if len(inherits) == 1:
                 # Python tupple has , after the first param
                 # in case of single parameter.
                 # So, we need to make it tuple explicitly.
-                inherits = "(" + str(inherits[0]) + ")"
+                inherits = f"({str(inherits[0])})"
             if inherits:
                 # Fetch Table Names from their respective Ids,
                 # as we need Table names to generate the SQL.
@@ -362,10 +362,7 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
                 if not status:
                     return internal_server_error(errormsg=res)
 
-                if 'inherits' in res['rows'][0]:
-                    data[key] = res['rows'][0]['inherits']
-                else:
-                    data[key] = []
+                data[key] = res['rows'][0]['inherits'] if 'inherits' in res['rows'][0] else []
 
     def check_precondition(f):
         """
@@ -420,11 +417,10 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
                               scid=scid)
         status, res = self.conn.execute_dict(SQL)
 
-        if not status:
-            return internal_server_error(errormsg=res)
-        return ajax_response(
-            response=res['rows'],
-            status=200
+        return (
+            ajax_response(response=res['rows'], status=200)
+            if status
+            else internal_server_error(errormsg=res)
         )
 
     @check_precondition
@@ -439,7 +435,6 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
             scid: Schema Id
         """
 
-        res = []
         SQL = render_template("/".join([self.template_path,
                                         self._NODE_SQL]), scid=scid)
         status, rset = self.conn.execute_2darray(SQL)
@@ -447,15 +442,12 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
         if not status:
             return internal_server_error(errormsg=rset)
 
-        for row in rset['rows']:
-            res.append(
-                self.blueprint.generate_browser_node(
-                    row['oid'],
-                    scid,
-                    row['name'],
-                    icon="icon-foreign_table"
-                ))
-
+        res = [
+            self.blueprint.generate_browser_node(
+                row['oid'], scid, row['name'], icon="icon-foreign_table"
+            )
+            for row in rset['rows']
+        ]
         return make_json_response(
             data=res,
             status=200
@@ -509,12 +501,10 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
         status, data = self._fetch_properties(gid, sid, did, scid, foid)
         if not status:
             return data
-        if not data:
-            return gone(self.not_found_error_msg())
-
-        return ajax_response(
-            response=data,
-            status=200
+        return (
+            ajax_response(response=data, status=200)
+            if data
+            else gone(self.not_found_error_msg())
         )
 
     @check_precondition
@@ -538,12 +528,10 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
             if not status:
                 return internal_server_error(errormsg=res)
 
-            for row in rset['rows']:
-                res.append(
-                    {'label': row['copy_collation'],
-                     'value': row['copy_collation']}
-                )
-
+            res.extend(
+                {'label': row['copy_collation'], 'value': row['copy_collation']}
+                for row in rset['rows']
+            )
             return make_json_response(
                 data=res,
                 status=200
@@ -573,12 +561,10 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
         # Get Types
         status, types = self.get_types(self.conn, condition)
 
-        if not status:
-            return internal_server_error(errormsg=types)
-
-        return make_json_response(
-            data=types,
-            status=200
+        return (
+            make_json_response(data=types, status=200)
+            if status
+            else internal_server_error(errormsg=types)
         )
 
     @check_precondition
@@ -601,10 +587,10 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
             if not status:
                 return internal_server_error(errormsg=res)
 
-            for row in rset['rows']:
-                res.append(
-                    {'label': row['srvname'], 'value': row['srvname']}
-                )
+            res.extend(
+                {'label': row['srvname'], 'value': row['srvname']}
+                for row in rset['rows']
+            )
             return make_json_response(
                 data=res,
                 status=200
@@ -632,14 +618,11 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
                 foid=foid, server_type=self.manager.server_type,
                 show_sys_objects=self.blueprint.show_system_objects)
             status, rset = self.conn.execute_dict(SQL)
-            if not status:
-                return internal_server_error(errormsg=res)
-
-            return make_json_response(
-                data=rset['rows'],
-                status=200
+            return (
+                make_json_response(data=rset['rows'], status=200)
+                if status
+                else internal_server_error(errormsg=res)
             )
-
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             current_app.logger.error(
@@ -669,7 +652,7 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
                               is inheritted.
         """
         res = []
-        data = request.args if request.args else None
+        data = request.args or None
         try:
             if data and 'attrelid' in data:
                 SQL = render_template("/".join([self.template_path,
@@ -677,11 +660,10 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
                                       attrelid=data['attrelid'])
                 status, res = self.conn.execute_dict(SQL)
 
-                if not status:
-                    return internal_server_error(errormsg=res)
-                return make_json_response(
-                    data=res['rows'],
-                    status=200
+                return (
+                    make_json_response(data=res['rows'], status=200)
+                    if status
+                    else internal_server_error(errormsg=res)
                 )
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -765,9 +747,7 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
             only_sql: Return only sql if True
         """
         if foid is None:
-            data = request.form if request.form else json.loads(
-                request.data, encoding='utf-8'
-            )
+            data = request.form or json.loads(request.data, encoding='utf-8')
         else:
             data = {'ids': [foid]}
 
@@ -853,10 +833,7 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
 
             return jsonify(
                 node=self.blueprint.generate_browser_node(
-                    foid,
-                    scid,
-                    name,
-                    icon="icon-%s" % self.node_type
+                    foid, scid, name, icon=f"icon-{self.node_type}"
                 )
             )
         except Exception as e:
@@ -876,7 +853,7 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
             json_resp: True then return json response
         """
         json_resp = kwargs.get('json_resp', True)
-        target_schema = kwargs.get('target_schema', None)
+        target_schema = kwargs.get('target_schema')
 
         status, data = self._fetch_properties(gid, sid, did, scid, foid,
                                               inherits=True)
@@ -885,11 +862,11 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
         if not data:
             return gone(self.not_found_error_msg())
 
-        col_data = []
-        for c in data['columns']:
-            if ('inheritedfrom' not in c) or (c['inheritedfrom'] is None):
-                col_data.append(c)
-
+        col_data = [
+            c
+            for c in data['columns']
+            if ('inheritedfrom' not in c) or (c['inheritedfrom'] is None)
+        ]
         data['columns'] = col_data
         if target_schema:
             data['basensp'] = target_schema
@@ -1028,13 +1005,7 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
         :param old_data: old data for compare.
         :return:
         """
-        col_data = {}
-        # Prepare dict of columns with key = column's attnum
-        # Will use this in the update template when any column is
-        # changed, to identify the columns.
-        for c in old_data['columns']:
-            col_data[c['attnum']] = c
-
+        col_data = {c['attnum']: c for c in old_data['columns']}
         old_data['columns'] = col_data
 
         if 'columns' in data and 'added' in data['columns']:
@@ -1060,7 +1031,7 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
         did = kwargs.get('did')
         scid = kwargs.get('scid')
         data = kwargs.get('data')
-        foid = kwargs.get('foid', None)
+        foid = kwargs.get('foid')
         is_schema_diff = kwargs.get('is_schema_diff', False)
 
         if foid is not None:
@@ -1272,9 +1243,9 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
         will be fetched from database.
         """
         if inherits and 'inherits' in data and data['inherits']:
-            inherits = tuple([int(x) for x in data['inherits']])
+            inherits = tuple(int(x) for x in data['inherits'])
             if len(inherits) == 1:
-                inherits = "(" + str(inherits[0]) + ")"
+                inherits = f"({str(inherits[0])})"
 
             sql = render_template("/".join([self.template_path,
                                             self._GET_TABLES_SQL]),
@@ -1382,15 +1353,8 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
         if not data:
             return gone(self.not_found_error_msg())
 
-        columns = []
-        for c in data['columns']:
-            columns.append(self.qtIdent(self.conn, c['attname']))
-
-        if len(columns) > 0:
-            columns = ", ".join(columns)
-        else:
-            columns = '*'
-
+        columns = [self.qtIdent(self.conn, c['attname']) for c in data['columns']]
+        columns = ", ".join(columns) if columns else '*'
         sql = "SELECT {0}\n\tFROM {1};".format(
             columns,
             self.qtIdent(self.conn, data['basensp'], data['name'])
@@ -1428,7 +1392,7 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
                 columns.append(self.qtIdent(self.conn, c['attname']))
                 values.append('?')
 
-        if len(columns) > 0:
+        if columns:
             columns = ", ".join(columns)
             values = ", ".join(values)
             sql = "INSERT INTO {0}(\n\t{1})\n\tVALUES ({2});".format(
@@ -1465,17 +1429,10 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
 
         # Now we have all list of columns which we need
         if 'columns' in data:
-            for c in data['columns']:
-                columns.append(self.qtIdent(self.conn, c['attname']))
-
-        if len(columns) > 0:
-            if len(columns) == 1:
-                columns = columns[0]
-                columns += "=?"
-            else:
-                columns = "=?, ".join(columns)
-                columns += "=?"
-
+            columns.extend(self.qtIdent(self.conn, c['attname']) for c in data['columns'])
+        if columns:
+            columns = columns[0] if len(columns) == 1 else "=?, ".join(columns)
+            columns += "=?"
             sql = "UPDATE {0}\n\tSET {1}\n\tWHERE <condition>;".format(
                 self.qtIdent(self.conn, data['basensp'], data['name']),
                 columns
@@ -1512,10 +1469,7 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
         )
 
         # Used for schema diff tool
-        if only_sql:
-            return sql
-
-        return ajax_response(response=sql)
+        return sql if only_sql else ajax_response(response=sql)
 
     @staticmethod
     def _check_const_for_obj_compare(data):
@@ -1540,7 +1494,7 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
         :param scid: Schema Id
         :return:
         """
-        res = dict()
+        res = {}
         SQL = render_template("/".join([self.template_path,
                                         self._NODE_SQL]), scid=scid,
                               schema_diff=True)
@@ -1568,24 +1522,23 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
         did = kwargs.get('did')
         scid = kwargs.get('scid')
         oid = kwargs.get('oid')
-        data = kwargs.get('data', None)
+        data = kwargs.get('data')
         drop_sql = kwargs.get('drop_sql', False)
-        target_schema = kwargs.get('target_schema', None)
+        target_schema = kwargs.get('target_schema')
 
         if data:
             sql, name = self.get_sql(gid=gid, sid=sid, did=did, scid=scid,
                                      data=data, foid=oid,
                                      is_schema_diff=True)
+        elif drop_sql:
+            sql = self.delete(gid=gid, sid=sid, did=did,
+                              scid=scid, foid=oid, only_sql=True)
+        elif target_schema:
+            sql = self.sql(gid=gid, sid=sid, did=did, scid=scid, foid=oid,
+                           target_schema=target_schema, json_resp=False)
         else:
-            if drop_sql:
-                sql = self.delete(gid=gid, sid=sid, did=did,
-                                  scid=scid, foid=oid, only_sql=True)
-            elif target_schema:
-                sql = self.sql(gid=gid, sid=sid, did=did, scid=scid, foid=oid,
-                               target_schema=target_schema, json_resp=False)
-            else:
-                sql = self.sql(gid=gid, sid=sid, did=did, scid=scid, foid=oid,
-                               json_resp=False)
+            sql = self.sql(gid=gid, sid=sid, did=did, scid=scid, foid=oid,
+                           json_resp=False)
         return sql
 
     @staticmethod
@@ -1614,12 +1567,9 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
         """
         tmp_constraints = []
         if 'added' in data['constraints']:
-            for item in data['constraints']['added']:
-                tmp_constraints.append(item)
+            tmp_constraints.extend(iter(data['constraints']['added']))
         if 'changed' in data['constraints']:
-            for item in data['constraints']['changed']:
-                tmp_constraints.append(item)
-
+            tmp_constraints.extend(iter(data['constraints']['changed']))
         return tmp_constraints
 
     @staticmethod
@@ -1659,9 +1609,7 @@ class ForeignTableView(PGChildNodeView, DataTypeReader,
             tmp_constraints = ForeignTableView._modify_constraints_data(data)
             data['constraints'] = tmp_constraints
 
-        tmp_ftoptions = []
-        if 'ftoptions' in old_data:
-            tmp_ftoptions = old_data['ftoptions']
+        tmp_ftoptions = old_data['ftoptions'] if 'ftoptions' in old_data else []
         if 'ftoptions' in data:
             ForeignTableView._modify_options_data(data, tmp_ftoptions)
 

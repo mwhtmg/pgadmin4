@@ -77,11 +77,9 @@ class WebserverAuthentication(BaseAuthentication):
         return True, None
 
     def get_user(self):
-        username = request.environ.get(config.WEBSERVER_REMOTE_USER)
-        if not username:
-            # One more try to get the Remote User from the hearders
-            username = request.headers.get(config.WEBSERVER_REMOTE_USER)
-        return username
+        return request.environ.get(
+            config.WEBSERVER_REMOTE_USER
+        ) or request.headers.get(config.WEBSERVER_REMOTE_USER)
 
     def authenticate(self, form):
         username = self.get_user()
@@ -98,8 +96,7 @@ class WebserverAuthentication(BaseAuthentication):
         return self.__auto_create_user(username, '')
 
     def login(self, form):
-        username = self.get_user()
-        if username:
+        if username := self.get_user():
             user = User.query.filter_by(username=username).first()
             status = login_user(user)
             if not status:

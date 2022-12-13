@@ -166,11 +166,10 @@ class ExtensionView(PGChildNodeView, SchemaDiffObjectCompare):
                                         self._PROPERTIES_SQL]))
         status, res = self.conn.execute_dict(SQL)
 
-        if not status:
-            return internal_server_error(errormsg=res)
-        return ajax_response(
-            response=res['rows'],
-            status=200
+        return (
+            ajax_response(response=res['rows'], status=200)
+            if status
+            else internal_server_error(errormsg=res)
         )
 
     @check_precondition
@@ -178,22 +177,18 @@ class ExtensionView(PGChildNodeView, SchemaDiffObjectCompare):
         """
         Lists all extensions under the Extensions Collection node
         """
-        res = []
         SQL = render_template("/".join([self.template_path,
                                         self._PROPERTIES_SQL]))
         status, rset = self.conn.execute_2darray(SQL)
         if not status:
             return internal_server_error(errormsg=rset)
 
-        for row in rset['rows']:
-            res.append(
-                self.blueprint.generate_browser_node(
-                    row['oid'],
-                    did,
-                    row['name'],
-                    'icon-extension'
-                ))
-
+        res = [
+            self.blueprint.generate_browser_node(
+                row['oid'], did, row['name'], 'icon-extension'
+            )
+            for row in rset['rows']
+        ]
         return make_json_response(
             data=res,
             status=200
@@ -230,13 +225,7 @@ class ExtensionView(PGChildNodeView, SchemaDiffObjectCompare):
         Fetch the properties of a single extension and render in properties tab
         """
         status, res = self._fetch_properties(did, eid)
-        if not status:
-            return res
-
-        return ajax_response(
-            response=res,
-            status=200
-        )
+        return ajax_response(response=res, status=200) if status else res
 
     def _fetch_properties(self, did, eid):
         """
@@ -270,9 +259,7 @@ class ExtensionView(PGChildNodeView, SchemaDiffObjectCompare):
             'name'
         ]
 
-        data = request.form if request.form else json.loads(
-            request.data, encoding='utf-8'
-        )
+        data = request.form or json.loads(request.data, encoding='utf-8')
 
         for arg in required_args:
             if arg not in data:
@@ -297,16 +284,14 @@ class ExtensionView(PGChildNodeView, SchemaDiffObjectCompare):
         status, res = get_extension_details(
             self.conn, data['name'],
             "/".join([self.template_path, self._PROPERTIES_SQL]))
-        if not status:
-            return internal_server_error(errormsg=res)
-
-        return jsonify(
-            node=self.blueprint.generate_browser_node(
-                res['oid'],
-                did,
-                res['name'],
-                'icon-extension'
+        return (
+            jsonify(
+                node=self.blueprint.generate_browser_node(
+                    res['oid'], did, res['name'], 'icon-extension'
+                )
             )
+            if status
+            else internal_server_error(errormsg=res)
         )
 
     @check_precondition
@@ -314,9 +299,7 @@ class ExtensionView(PGChildNodeView, SchemaDiffObjectCompare):
         """
         This function will update an extension object
         """
-        data = request.form if request.form else json.loads(
-            request.data, encoding='utf-8'
-        )
+        data = request.form or json.loads(request.data, encoding='utf-8')
 
         try:
             SQL, name = self.getSQL(gid, sid, data, did, eid)
@@ -325,16 +308,14 @@ class ExtensionView(PGChildNodeView, SchemaDiffObjectCompare):
                 return SQL
             SQL = SQL.strip('\n').strip(' ')
             status, res = self.conn.execute_dict(SQL)
-            if not status:
-                return internal_server_error(errormsg=res)
-
-            return jsonify(
-                node=self.blueprint.generate_browser_node(
-                    eid,
-                    did,
-                    name,
-                    icon="icon-%s" % self.node_type
+            return (
+                jsonify(
+                    node=self.blueprint.generate_browser_node(
+                        eid, did, name, icon=f"icon-{self.node_type}"
+                    )
                 )
+                if status
+                else internal_server_error(errormsg=res)
             )
         except Exception as e:
             return internal_server_error(errormsg=str(e))
@@ -346,9 +327,7 @@ class ExtensionView(PGChildNodeView, SchemaDiffObjectCompare):
         """
 
         if eid is None:
-            data = request.form if request.form else json.loads(
-                request.data, encoding='utf-8'
-            )
+            data = request.form or json.loads(request.data, encoding='utf-8')
         else:
             data = {'ids': [eid]}
 
@@ -421,10 +400,6 @@ class ExtensionView(PGChildNodeView, SchemaDiffObjectCompare):
         """
         This function will generate sql from model data
         """
-        required_args = [
-            'name'
-        ]
-
         if eid is not None:
             SQL = render_template("/".join(
                 [self.template_path, self._PROPERTIES_SQL]
@@ -439,6 +414,10 @@ class ExtensionView(PGChildNodeView, SchemaDiffObjectCompare):
                 )
 
             old_data = res['rows'][0]
+            required_args = [
+                'name'
+            ]
+
             for arg in required_args:
                 if arg not in data:
                     data[arg] = old_data[arg]
@@ -459,11 +438,10 @@ class ExtensionView(PGChildNodeView, SchemaDiffObjectCompare):
         """
         SQL = render_template("/".join([self.template_path, 'extensions.sql']))
         status, rset = self.conn.execute_dict(SQL)
-        if not status:
-            return internal_server_error(errormsg=rset)
-        return make_json_response(
-            data=rset['rows'],
-            status=200
+        return (
+            make_json_response(data=rset['rows'], status=200)
+            if status
+            else internal_server_error(errormsg=rset)
         )
 
     @check_precondition
@@ -473,11 +451,10 @@ class ExtensionView(PGChildNodeView, SchemaDiffObjectCompare):
         """
         SQL = render_template("/".join([self.template_path, 'schemas.sql']))
         status, rset = self.conn.execute_dict(SQL)
-        if not status:
-            return internal_server_error(errormsg=rset)
-        return make_json_response(
-            data=rset['rows'],
-            status=200
+        return (
+            make_json_response(data=rset['rows'], status=200)
+            if status
+            else internal_server_error(errormsg=rset)
         )
 
     @check_precondition
@@ -507,10 +484,7 @@ class ExtensionView(PGChildNodeView, SchemaDiffObjectCompare):
             add_not_exists_clause=True
         )
 
-        if not json_resp:
-            return SQL
-
-        return ajax_response(response=SQL)
+        return ajax_response(response=SQL) if json_resp else SQL
 
     @check_precondition
     def dependents(self, gid, sid, did, eid):
@@ -558,7 +532,7 @@ class ExtensionView(PGChildNodeView, SchemaDiffObjectCompare):
         :param did: Database Id
         :return:
         """
-        res = dict()
+        res = {}
 
         sql = render_template("/".join([self.template_path,
                                         self._PROPERTIES_SQL]))
@@ -583,19 +557,18 @@ class ExtensionView(PGChildNodeView, SchemaDiffObjectCompare):
         sid = kwargs.get('sid')
         did = kwargs.get('did')
         oid = kwargs.get('oid')
-        data = kwargs.get('data', None)
+        data = kwargs.get('data')
         drop_sql = kwargs.get('drop_sql', False)
 
         if data:
             sql, name = self.getSQL(gid=gid, sid=sid, did=did, data=data,
                                     eid=oid)
+        elif drop_sql:
+            sql = self.delete(gid=gid, sid=sid, did=did,
+                              eid=oid, only_sql=True)
         else:
-            if drop_sql:
-                sql = self.delete(gid=gid, sid=sid, did=did,
-                                  eid=oid, only_sql=True)
-            else:
-                sql = self.sql(gid=gid, sid=sid, did=did, eid=oid,
-                               json_resp=False)
+            sql = self.sql(gid=gid, sid=sid, did=did, eid=oid,
+                           json_resp=False)
         return sql
 
 
